@@ -7,9 +7,9 @@
 %bcond_with gitcommit
 %if %{with gitcommit}
 # ToT
-%global commit0 b36e01801b89a516f4271f796773d5f4b43f1186
+%global commit0 6e545392cd27b9ee14a86cf6189c71211e79205d
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240521
+%global date0 20240605
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.0
@@ -162,7 +162,6 @@ Source50:       https://github.com/mreineck/pocketfft/archive/%{pf_commit}/pocke
 
 Patch0:        0001-no-third_party-foxi.patch
 Patch3:        0001-Stub-in-kineto-ActivityType.patch
-Patch5:        0001-disable-submodule-search.patch
 
 %if %{with caffe2}
 Patch6:        0001-reenable-foxi-linking.patch
@@ -498,6 +497,9 @@ sed -i -e 's@list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@#list(APPE
 sed -i -e 's@if(NOT TARGET fxdiv)@if(MSVC AND USE_XNNPACK)@' caffe2/CMakeLists.txt
 sed -i -e 's@TARGET_LINK_LIBRARIES(torch_cpu PRIVATE fxdiv)@#TARGET_LINK_LIBRARIES(torch_cpu PRIVATE fxdiv)@' caffe2/CMakeLists.txt
 %endif
+
+# Disable the use of check_submodule's in the setup.py, we are a tarball, not a git repo
+sed -i -e 's@check_submodules()$@#check_submodules()@' setup.py
 
 # Release comes fully loaded with third party src
 # Remove what we can
