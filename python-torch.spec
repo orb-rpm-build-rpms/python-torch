@@ -237,6 +237,19 @@ Patch7:        0001-Reenable-dim-for-python-3.12.patch
 # Patch8:        0001-dynamo-3.12-enable-dynamo-on-3.12-enable-most-dynamo.patch
 %endif
 
+%if %{without gitcommit}
+# Enable x86 CPU vectorization on windows [submodule sleef] (#118980)
+# https://github.com/pytorch/pytorch/commit/56451cd49d9cf94b49197e09dec13426bb1a5370
+#
+# Despite the title, this patch fixes compatibility with sleef 3.6 by including
+# a backwards-compatible version of the fix from
+# https://github.com/pytorch/pytorch/pull/122723.
+# Cherry-picked on v2.3.0, without the commit to update the third_party/sleef
+# git submodule (because the release archive contains an actual sleef source
+# tree instead, so this would not apply.)
+Patch9:        0001-Enable-x86-CPU-vectorization-on-windows-submodule-sl.patch
+%endif
+
 # ROCm patches
 # Patches need to be refactored for ToT
 %if %{without gitcommit}
