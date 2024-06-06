@@ -33,7 +33,7 @@
 # hipblaslt is in development
 %bcond_with hipblaslt
 # Which families gpu build for
-%global rocm_gpu_list gfx8 gfx9 gfx10 gfx11
+%global rocm_gpu_list gfx8 gfx9 gfx10 gfx11 gfx90a gfx942 gfx1100
 %global rocm_default_gpu default
 %bcond_without rocm_loop
 
@@ -379,6 +379,21 @@ Summary:        %{name} for ROCm gfx10
 Summary:        %{name} for ROCm gfx11
 
 %description -n python3-%{pypi_name}-rocm-gfx11
+%{summary}
+
+%package -n python3-%{pypi_name}-rocm-gfx90a
+Summary:        %{name} for ROCm MI200
+%description -n python3-%{pypi_name}-rocm-gfx90a
+%{summary}
+
+%package -n python3-%{pypi_name}-rocm-gfx942
+Summary:        %{name} for ROCm MI300
+%description -n python3-%{pypi_name}-rocm-gfx942
+%{summary}
+
+%package -n python3-%{pypi_name}-rocm-gfx1100
+Summary:        %{name} for W7900
+%description -n python3-%{pypi_name}-rocm-gfx1100
 %{summary}
 
 %endif
@@ -853,6 +868,19 @@ done
 %files -n python3-%{pypi_name}-rocm-gfx11
 %{_libdir}/rocm/gfx11/bin/*
 %{_libdir}/rocm/gfx11/lib64/*
+
+%files -n python3-%{pypi_name}-rocm-gfx90a
+%{_libdir}/rocm/gfx90a/bin/*
+%{_libdir}/rocm/gfx90a/lib64/*
+
+%files -n python3-%{pypi_name}-rocm-gfx942
+%{_libdir}/rocm/gfx942/bin/*
+%{_libdir}/rocm/gfx942/lib64/*
+
+%files -n python3-%{pypi_name}-rocm-gfx1100
+%{_libdir}/rocm/gfx1100/bin/*
+%{_libdir}/rocm/gfx1100/lib64/*
+
 %endif
 
 %changelog
