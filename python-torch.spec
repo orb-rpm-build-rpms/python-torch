@@ -87,6 +87,10 @@
 %bcond_with cuda
 %endif
 
+# For testing compat-gcc
+%global compat_gcc_major 13
+%bcond_with compat_gcc
+
 # Disable dwz with rocm because memory can be exhausted
 %if %{with rocm}
 %define _find_debuginfo_dwz_opts %{nil}
@@ -198,8 +202,15 @@ BuildRequires:  fmt-devel
 %if %{with caffe2}
 BuildRequires:  foxi-devel
 %endif
+
+%if %{with compat_gcc}
+BuildRequires:  compat-gcc-%{compat_gcc_major}-c++
+BuildRequires:  compat-gcc-%{compat_gcc_major}-gfortran
+%else
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
+%endif
+
 %if %{with distributed}
 %if %{with gloo}
 BuildRequires:  gloo-devel
@@ -657,6 +668,12 @@ if [ "$COMPILE_JOBS_MEM" -lt "$COMPILE_JOBS" ]; then
 fi
 export MAX_JOBS=$COMPILE_JOBS
 
+%if %{with compat_gcc}
+export CC=%{_bindir}/gcc%{compat_gcc_major}
+export CXX=%{_bindir}/g++%{compat_gcc_major}
+export FC=%{_bindir}/gfortran%{compat_gcc_major}
+%endif
+
 # For debugging setup.py
 # export SETUPTOOLS_SCM_DEBUG=1
 
@@ -799,8 +816,13 @@ done
 
 %install
 
-%if %{with rocm}
+%if %{with compat_gcc}
+export CC=%{_bindir}/gcc%{compat_gcc_major}
+export CXX=%{_bindir}/g++%{compat_gcc_major}
+export FC=%{_bindir}/gfortran%{compat_gcc_major}
+%endif
 
+%if %{with rocm}
 export USE_ROCM=ON
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
