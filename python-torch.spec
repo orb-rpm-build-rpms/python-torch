@@ -7,9 +7,9 @@
 %bcond_with gitcommit
 %if %{with gitcommit}
 # ToT
-%global commit0 6e545392cd27b9ee14a86cf6189c71211e79205d
+%global commit0 75b0720a97ac5d82e8a7a1a6ae7c5f7a87d7183d
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240605
+%global date0 20240609
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.1
@@ -96,6 +96,23 @@
 %define _find_debuginfo_dwz_opts %{nil}
 %endif
 
+%if %{with cuda}
+# workaround problems with -pie
+%global build_cxxflags %{nil}
+%global build_ldflags %{nil}
+%endif
+			 
+# These came in 2.4 and not yet in Fedora
+%if %{with gitcommit}
+%bcond_with opentelemetry
+%bcond_with httplib
+%bcond_with kineto
+%else
+%bcond_without opentelemetry
+%bcond_without httplib
+%bcond_without kineto
+%endif
+
 Name:           python-%{pypi_name}
 %if %{with gitcommit}
 Version:        %{pypi_version}^git%{date0}.%{shortcommit0}
@@ -110,7 +127,7 @@ License:        BSD-3-Clause AND BSD-2-Clause AND 0BSD AND Apache-2.0 AND MIT AN
 URL:            https://pytorch.org/
 %if %{with gitcommit}
 Source0:        %{forgeurl}/archive/%{commit0}/pytorch-%{shortcommit0}.tar.gz
-Source100:        pyproject.toml
+Source1000:     pyproject.toml
 %else
 Source0:        %{forgeurl}/releases/download/v%{version}/pytorch-v%{version}.tar.gz
 %endif
@@ -164,8 +181,28 @@ Source40:       https://github.com/Maratyszcza/pthreadpool/archive/%{pt_commit}/
 Source50:       https://github.com/mreineck/pocketfft/archive/%{pf_commit}/pocketfft-%{pf_scommit}.tar.gz
 %endif
 
+%if %{without opentelemetry}
+%global ot_ver 1.14.2
+Source60:       https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v%{ot_ver}.tar.gz
+%endif
+
+%if %{without httplib}
+%global hl_commit 3b6597bba913d51161383657829b7e644e59c006
+%global hl_scommit %(c=%{hl_commit}; echo ${c:0:7})
+Source70:       https://github.com/yhirose/cpp-httplib/archive/%{hl_commit}/cpp-httplib-%{hl_scommit}.tar.gz
+%endif
+
+%if %{without kineto}
+%global ki_commit be1317644c68b4bfc4646024a6b221066e430031
+%global ki_scommit %(c=%{ki_commit}; echo ${c:0:7})
+Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{ki_scommit}.tar.gz
+%endif
+
 Patch0:        0001-no-third_party-foxi.patch
+
+%if %{without gitcommit}
 Patch3:        0001-Stub-in-kineto-ActivityType.patch
+%endif
 
 %if %{with caffe2}
 Patch6:        0001-reenable-foxi-linking.patch
@@ -182,14 +219,18 @@ Patch7:        0001-Reenable-dim-for-python-3.12.patch
 %endif
 
 # ROCm patches
-# https://github.com/pytorch/pytorch/pull/120551
+# Patches need to be refactored for ToT
+%if %{without gitcommit}
+# These are ROCm packages
 %if %{without cuda}
+# https://github.com/pytorch/pytorch/pull/120551
 Patch100:      0001-Optionally-use-hipblaslt.patch
 Patch101:      0001-cuda-hip-signatures.patch
 Patch102:      0001-silence-an-assert.patch
 Patch103:      0001-can-not-use-with-c-files.patch
 Patch104:      0001-use-any-hip.patch
 Patch105:      0001-disable-use-of-aotriton.patch
+%endif
 %endif
 
 ExclusiveArch:  x86_64 aarch64
@@ -425,7 +466,7 @@ Requires:       python3-%{pypi_name}%{?_isa} = %{version}-%{release}
 %if %{with gitcommit}
 %autosetup -p1 -n pytorch-%{commit0}
 # Overwrite with a git checkout of the pyproject.toml
-cp %{SOURCE100} .
+cp %{SOURCE1000} .
 %else
 %autosetup -p1 -n pytorch-v%{version}
 %endif
@@ -487,6 +528,24 @@ cp -r pthreadpool-*/* third_party/pthreadpool/
 tar xf %{SOURCE50}
 rm -rf third_party/pocketfft/*
 cp -r pocketfft-*/* third_party/pocketfft/
+%endif
+
+%if %{without opentelemtry}
+tar xf %{SOURCE60}
+rm -rf third_party/opentelemetry-cpp/*
+cp -r opentelemetry-cpp-*/* third_party/opentelemetry-cpp/
+%endif
+
+%if %{without httplib}
+tar xf %{SOURCE70}
+rm -rf third_party/cpp-httplib/*
+cp -r cpp-httplib-*/* third_party/cpp-httplib/
+%endif
+
+%if %{without kineto}
+tar xf %{SOURCE80}
+rm -rf third_party/kineto/*
+cp -r kineto-*/* third_party/kineto/
 %endif
 
 %if %{with opencv}
@@ -570,6 +629,18 @@ mv third_party/pthreadpool .
 mv third_party/pocketfft .
 %endif
 
+%if %{without opentelemetry}
+mv third_party/opentelemetry-cpp .
+%endif
+
+%if %{without httplib}
+mv third_party/cpp-httplib .
+%endif
+
+%if %{without kineto}
+mv third_party/kineto .
+%endif
+
 %if %{with test}
 mv third_party/googletest .
 %endif
@@ -606,6 +677,18 @@ mv pthreadpool third_party
 mv pocketfft third_party
 %endif
 
+%if %{without opentelemetry}
+mv opentelemetry-cpp third_party
+%endif
+
+%if %{without httplib}
+mv cpp-httplib third_party
+%endif
+
+%if %{without kineto}
+mv kineto third_party
+%endif
+
 %if %{with test}
 mv googletest third_party
 %endif
@@ -636,8 +719,9 @@ sed -i -e 's@rocm-core/rocm_version.h@rocm_version.h@' aten/src/ATen/hip/tunable
 %endif
 
 %if %{with cuda}
-# build complains about not being able to build -pie without -fPIC
-sed -i -e 's@string(APPEND CMAKE_CUDA_FLAGS " -D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")@string(APPEND CMAKE_CUDA_FLAGS " -fPIC -D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")@' CMakeLists.txt
+
+# TBD
+
 %endif
 
 %build
@@ -684,7 +768,10 @@ export FC=%{_bindir}/gfortran%{compat_gcc_major}
 # export CMAKE_SHARED_LINKER_FLAGS=-Wl,--verbose
 
 # Manually set this hardening flag
+# CUDA is unhappy with pie, so do not use it
+%if %{without cuda}
 export CMAKE_EXE_LINKER_FLAGS=-pie
+%endif
 
 export BUILD_CUSTOM_PROTOBUF=OFF
 export BUILD_NVFUSER=OFF
@@ -712,7 +799,9 @@ export USE_NNPACK=OFF
 export USE_NUMPY=ON
 export USE_OPENMP=ON
 export USE_PYTORCH_QNNPACK=OFF
+%if %{without gitcommit}
 export USE_QNNPACK=OFF
+%endif
 export USE_ROCM=OFF
 export USE_SYSTEM_CPUINFO=ON
 export USE_SYSTEM_SLEEF=ON
