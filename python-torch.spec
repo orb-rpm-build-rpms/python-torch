@@ -12,7 +12,7 @@
 %global date0 20240605
 %global pypi_version 2.4.0
 %else
-%global pypi_version 2.3.0
+%global pypi_version 2.3.1
 %endif
 
 # For -test subpackage
@@ -177,7 +177,8 @@ Patch6:        0001-reenable-foxi-linking.patch
 Patch7:        0001-Reenable-dim-for-python-3.12.patch
 
 # Dynamo/Inductor on 3.12
-Patch8:        0001-dynamo-3.12-enable-dynamo-on-3.12-enable-most-dynamo.patch
+# Fails to apply on 2.3.1
+# Patch8:        0001-dynamo-3.12-enable-dynamo-on-3.12-enable-most-dynamo.patch
 %endif
 
 # ROCm patches
