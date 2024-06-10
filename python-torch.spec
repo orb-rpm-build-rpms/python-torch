@@ -181,6 +181,7 @@ Source40:       https://github.com/Maratyszcza/pthreadpool/archive/%{pt_commit}/
 Source50:       https://github.com/mreineck/pocketfft/archive/%{pf_commit}/pocketfft-%{pf_scommit}.tar.gz
 %endif
 
+%if %{with gitcommit}
 %if %{without opentelemetry}
 %global ot_ver 1.14.2
 Source60:       https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v%{ot_ver}.tar.gz
@@ -196,6 +197,7 @@ Source70:       https://github.com/yhirose/cpp-httplib/archive/%{hl_commit}/cpp-
 %global ki_commit be1317644c68b4bfc4646024a6b221066e430031
 %global ki_scommit %(c=%{ki_commit}; echo ${c:0:7})
 Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{ki_scommit}.tar.gz
+%endif
 %endif
 
 Patch0:        0001-no-third_party-foxi.patch
@@ -530,6 +532,7 @@ rm -rf third_party/pocketfft/*
 cp -r pocketfft-*/* third_party/pocketfft/
 %endif
 
+%if %{with gitcommit}
 %if %{without opentelemtry}
 tar xf %{SOURCE60}
 rm -rf third_party/opentelemetry-cpp/*
@@ -546,6 +549,7 @@ cp -r cpp-httplib-*/* third_party/cpp-httplib/
 tar xf %{SOURCE80}
 rm -rf third_party/kineto/*
 cp -r kineto-*/* third_party/kineto/
+%endif
 %endif
 
 %if %{with opencv}
