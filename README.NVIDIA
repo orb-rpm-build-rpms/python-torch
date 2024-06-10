@@ -1,0 +1,15 @@
+Some help for building this package for NVIDIA/CUDA
+
+Review NVIDIA's documenation
+https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+
+Review PyTorch documentation
+https://github.com/pytorch/pytorch#from-source
+
+Some convience strings to cut-n-paste
+
+F39
+dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo
+
+Building is local.
+Build machine has a supported GPU, the drivers are loaded and CUDA SDK is installed.
