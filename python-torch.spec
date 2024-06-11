@@ -33,7 +33,12 @@
 # hipblaslt is in development
 %bcond_with hipblaslt
 # Which families gpu build for
+%if 0%{?fedora} > 40
 %global rocm_gpu_list gfx8 gfx9 gfx10 gfx11 gfx90a gfx942 gfx1100
+%else
+# F40
+%global rocm_gpu_list gfx8 gfx9 gfx10 gfx11
+%endif
 %global rocm_default_gpu default
 %bcond_without rocm_loop
 
@@ -436,6 +441,7 @@ Summary:        %{name} for ROCm gfx11
 %description -n python3-%{pypi_name}-rocm-gfx11
 %{summary}
 
+%if 0%{?fedora} > 40
 %package -n python3-%{pypi_name}-rocm-gfx90a
 Summary:        %{name} for ROCm MI200
 %description -n python3-%{pypi_name}-rocm-gfx90a
@@ -450,6 +456,7 @@ Summary:        %{name} for ROCm MI300
 Summary:        %{name} for W7900
 %description -n python3-%{pypi_name}-rocm-gfx1100
 %{summary}
+%endif
 
 %endif
 
@@ -985,6 +992,7 @@ done
 %{_libdir}/rocm/gfx11/bin/*
 %{_libdir}/rocm/gfx11/lib64/*
 
+%if 0%{?fedora} > 40
 %files -n python3-%{pypi_name}-rocm-gfx90a
 %{_libdir}/rocm/gfx90a/bin/*
 %{_libdir}/rocm/gfx90a/lib64/*
@@ -996,6 +1004,7 @@ done
 %files -n python3-%{pypi_name}-rocm-gfx1100
 %{_libdir}/rocm/gfx1100/bin/*
 %{_libdir}/rocm/gfx1100/lib64/*
+%endif
 
 %endif
 
