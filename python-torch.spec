@@ -172,6 +172,9 @@ Source32:       https://github.com/Maratyszcza/FP16/archive/%{fp_commit}/FP16-%{
 %global ps_commit 072586a71b55b7f8c584153d223e95687148a900
 %global ps_scommit %(c=%{ps_commit}; echo ${c:0:7})
 Source33:       https://github.com/Maratyszcza/psimd/archive/%{ps_commit}/psimd-%{ps_scommit}.tar.gz
+%global ci_commit d6860c477c99f1fce9e28eb206891af3c0e1a1d7
+%global ci_scommit %(c=%{ci_commit}; echo ${c:0:7})
+Source34:       https://github.com/pytorch/cpuinfo/archive/%{ci_commit}/cpuinfo-%{ci_scommit}.tar.gz
 %endif
 
 %if %{without pthreadpool}
@@ -245,7 +248,6 @@ ExclusiveArch:  x86_64 aarch64
 %global _lto_cflags %nil
 
 BuildRequires:  cmake
-BuildRequires:  cpuinfo-devel
 BuildRequires:  eigen3-devel
 BuildRequires:  fmt-devel
 %if %{with caffe2}
@@ -287,6 +289,7 @@ BuildRequires:  pthreadpool-devel
 %endif
 
 %if %{with xnnpack}
+BuildRequires:  cpuinfo-devel
 BuildRequires:  FP16-devel
 BuildRequires:  fxdiv-devel
 BuildRequires:  psimd-devel
@@ -380,6 +383,8 @@ Provides:       bundled(FP16)
 Provides:       bundled(fxdiv)
 # MIT
 Provides:       bundled(psimd)
+# BSD-2-Clause
+Provides:       bundled(cpuinfo)
 %endif
 
 %if %{without pthreadpool}
@@ -525,6 +530,9 @@ cp -r FP16-*/* third_party/FP16/
 tar xf %{SOURCE33}
 rm -rf third_party/psimd/*
 cp -r psimd-*/* third_party/psimd/
+tar xf %{SOURCE34}
+rm -rf third_party/cpuinfo/*
+cp -r cpuinfo-*/* third_party/cpuinfo/
 %endif
 
 %if %{without pthreadpool}
@@ -630,6 +638,7 @@ mv third_party/XNNPACK .
 mv third_party/FXdiv .
 mv third_party/FP16 .
 mv third_party/psimd .
+mv third_party/cpuinfo .
 %endif
 
 %if %{without pthreadpool}
@@ -678,6 +687,7 @@ mv XNNPACK third_party
 mv FXdiv third_party
 mv FP16 third_party
 mv psimd third_party
+mv cpuinfo third_party
 %endif
 
 %if %{without pthreadpool}
@@ -814,7 +824,6 @@ export USE_PYTORCH_QNNPACK=OFF
 export USE_QNNPACK=OFF
 %endif
 export USE_ROCM=OFF
-export USE_SYSTEM_CPUINFO=ON
 export USE_SYSTEM_SLEEF=ON
 export USE_SYSTEM_EIGEN_INSTALL=ON
 export USE_SYSTEM_ONNX=ON
@@ -828,6 +837,7 @@ export USE_SYSTEM_PTHREADPOOL=ON
 %endif
 
 %if %{with xnnpack}
+export USE_SYSTEM_CPUINFO=ON
 export USE_SYSTEM_FP16=ON
 export USE_SYSTEM_FXDIV=ON
 export USE_SYSTEM_PSIMD=ON
