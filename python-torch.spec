@@ -7,9 +7,9 @@
 %bcond_with gitcommit
 %if %{with gitcommit}
 # ToT
-%global commit0 75b0720a97ac5d82e8a7a1a6ae7c5f7a87d7183d
+%global commit0 2b9465d62ab8733a36226f0d8e236a8a9bd60c23
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240609
+%global date0 20240612
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.1
