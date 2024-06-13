@@ -92,6 +92,15 @@
 %bcond_with cuda
 %endif
 
+# Pick a version that works
+%if %{with cuda}
+%if 0%{?fedora} < 40
+%global cuda_ver 12.4
+%else
+%global cuda_ver 12.5
+%endif
+%endif
+
 # For testing compat-gcc
 %global compat_gcc_major 13
 %bcond_with compat_gcc
@@ -850,8 +859,9 @@ export BUILD_CAFFE2=ON
 
 %if %{with cuda}
 %if %{without rocm}
-export CUDACXX=/usr/local/cuda/bin/nvcc
-export CPLUS_INCLUDE_PATH=/usr/local/cuda/include
+export CPLUS_INCLUDE_PATH=/usr/local/cuda-%{cuda_ver}/include
+export CUDACXX=/usr/local/cuda-%{cuda_ver}/bin/nvcc
+export CUDA_HOME=/usr/local/cuda-%{cuda_ver}/
 export USE_CUDA=ON
 # The arches to build for
 export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0"
