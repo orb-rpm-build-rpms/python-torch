@@ -6,10 +6,10 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-# ToT
-%global commit0 2b9465d62ab8733a36226f0d8e236a8a9bd60c23
+# v2.4.0-rc3
+%global commit0 50e57d4f3fdbd51cea0ef9979bc61abd1a4e96c8
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240612
+%global date0 20240620
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.1
@@ -63,7 +63,12 @@
 
 # OpenCV support came in F41
 %if 0%{?fedora} > 40
+%if %{without gitcommit}
 %bcond_without opencv
+%else
+# USE_OPENCV removed in 2.4.0+
+%bcond_with opencv
+%endif
 %else
 %bcond_with opencv
 %endif
@@ -230,7 +235,8 @@ Patch6:        0001-reenable-foxi-linking.patch
 # Bring some patches forward
 %if %{without gitcommit}
 # https://github.com/pytorch/pytorch/pull/123384
-Patch7:        0001-Reenable-dim-for-python-3.12.patch
+# Breaks on python 3.13
+# Patch7:        0001-Reenable-dim-for-python-3.12.patch
 
 # Dynamo/Inductor on 3.12
 # Fails to apply on 2.3.1
@@ -248,6 +254,11 @@ Patch7:        0001-Reenable-dim-for-python-3.12.patch
 # git submodule (because the release archive contains an actual sleef source
 # tree instead, so this would not apply.)
 Patch9:        0001-Enable-x86-CPU-vectorization-on-windows-submodule-sl.patch
+
+# For Python 3.13
+# https://github.com/pytorch/pytorch/pull/126033
+Patch10: 0001-Changes-to-compile-with-3.13-126033.patch
+
 %endif
 
 # ROCm patches
@@ -503,6 +514,7 @@ Requires:       python3-%{pypi_name}%{?_isa} = %{version}-%{release}
 %autosetup -p1 -n pytorch-%{commit0}
 # Overwrite with a git checkout of the pyproject.toml
 cp %{SOURCE1000} .
+
 %else
 %autosetup -p1 -n pytorch-v%{version}
 %endif
@@ -826,6 +838,7 @@ export CAFFE2_LINK_LOCAL_PROTOBUF=OFF
 export INTERN_BUILD_MOBILE=OFF
 export USE_DISTRIBUTED=OFF
 export USE_CUDA=OFF
+export USE_FAKELOWP=OFF
 export USE_FBGEMM=OFF
 export USE_FLASH_ATTENTION=OFF
 export USE_GOLD_LINKER=OFF
@@ -837,6 +850,7 @@ export USE_LITE_PROTO=OFF
 export USE_MAGMA=OFF
 export USE_MKLDNN=OFF
 export USE_MPI=OFF
+export USE_MKLDNN=OFF
 export USE_NCCL=OFF
 export USE_NNPACK=OFF
 export USE_NUMPY=ON
@@ -853,6 +867,7 @@ export USE_SYSTEM_PYBIND11=OFF
 export USE_SYSTEM_LIBS=OFF
 export USE_TENSORPIPE=OFF
 export USE_XNNPACK=ON
+export USE_XPU=OFF
 
 %if %{with pthreadpool}
 export USE_SYSTEM_PTHREADPOOL=ON

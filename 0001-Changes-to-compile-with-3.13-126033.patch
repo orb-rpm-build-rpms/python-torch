@@ -1,0 +1,222 @@
+From 655a06444b261cb28e71a0973c0ab67aaa8261ab Mon Sep 17 00:00:00 2001
+From: albanD <desmaison.alban@gmail.com>
+Date: Tue, 14 May 2024 02:14:53 +0000
+Subject: [PATCH] Changes to compile with 3.13 (#126033)
+
+This is mainly:
+- Fix refcount access macro
+- Hide all the Dynamo code that needs update as usual
+- Add _PyWeakref_ClearRef as an extern provided by CPython. Including the pycore header that defines it would require raw c include shenanigans that I don't think are worth it.
+This allows to build both with regular and nogil version of cpython. Both
+
+Note that this requires the 3.13 branch at least past [d3094744d40de2deefbda9b1996d5029c9ebf0b0](https://github.com/python/cpython/commit/d3094744d40de2deefbda9b1996d5029c9ebf0b0) which we need for mimalloc include and weakref function being exposed.
+
+debug-only issues in pybind11 with PyMem_MALLOC vs PyObject_MALLOC being should be synced either by updating pybind or cpython. @colesbury I can send a PR to ifdef the proper use in pybind if you think that this is the best solution here?
+
+Pull Request resolved: https://github.com/pytorch/pytorch/pull/126033
+Approved by: https://github.com/colesbury
+---
+ torch/csrc/Storage.cpp                  |  2 +-
+ torch/csrc/autograd/python_variable.cpp |  2 +-
+ torch/csrc/dynamo/cpython_defs.c        | 15 +++++-
+ torch/csrc/dynamo/cpython_defs.h        |  2 +
+ torch/csrc/dynamo/eval_frame.c          | 67 ++++++++++++++++++-------
+ torch/csrc/utils/python_compat.h        |  4 ++
+ 6 files changed, 70 insertions(+), 22 deletions(-)
+
+diff --git a/torch/csrc/Storage.cpp b/torch/csrc/Storage.cpp
+index 93dbc9c09bb2..b22bbac35981 100644
+--- a/torch/csrc/Storage.cpp
++++ b/torch/csrc/Storage.cpp
+@@ -236,7 +236,7 @@ static void THPStorage_subclass_dealloc(PyObject* self) {
+   if (type->tp_del) {
+     PyObject_GC_Track(self);
+     type->tp_del(self);
+-    if (self->ob_refcnt > 0) {
++    if (Py_REFCNT(self) > 0) {
+       // Resurrected (see above comment about resurrection from `__del__`)
+       return;
+     }
+diff --git a/torch/csrc/autograd/python_variable.cpp b/torch/csrc/autograd/python_variable.cpp
+index 9e85f0026b35..8fd1129da63c 100644
+--- a/torch/csrc/autograd/python_variable.cpp
++++ b/torch/csrc/autograd/python_variable.cpp
+@@ -1910,7 +1910,7 @@ void THPVariable_subclass_dealloc(PyObject* self) {
+   if (type->tp_del) {
+     PyObject_GC_Track(self);
+     type->tp_del(self);
+-    if (self->ob_refcnt > 0) {
++    if (Py_REFCNT(self) > 0) {
+       /* Resurrected */
+       return;
+     }
+diff --git a/torch/csrc/dynamo/cpython_defs.c b/torch/csrc/dynamo/cpython_defs.c
+index 4a1dba63009a..5e0945a052ae 100644
+--- a/torch/csrc/dynamo/cpython_defs.c
++++ b/torch/csrc/dynamo/cpython_defs.c
+@@ -13,6 +13,17 @@
+   } else {                                                              \
+   }
+ 
++#if IS_PYTHON_3_13_PLUS
++// Gave up after fixing a few of these
++// pycore_opcode.h is gone (new is pycore_opcode_metadata.h ?)
++// f_code is gone (new is f_executable?)
++
++// Fake definitions for what we removed
++const uint8_t* THP_PyOpcode_Caches = NULL;
++const int THP_PyOpcode_Caches_size = 0;
++
++#else
++
+ // NOTE: all `assert`s below are converted to `CHECK`s
+ 
+ #if IS_PYTHON_3_11_PLUS
+@@ -29,8 +40,8 @@
+ #define NEED_OPCODE_TABLES // To get _PyOpcode_Deopt
+ #include <internal/pycore_opcode.h>
+ #undef NEED_OPCODE_TABLES
+-#undef Py_BUILD_CORE
+ #include <internal/pycore_frame.h>
++#undef Py_BUILD_CORE
+ 
+ // As a simple way to reduce the impact of ABI changes on the CPython side, this check forces
+ // us to manually re-check that the function didn't change on the next major version
+@@ -364,3 +375,5 @@ THP_PyFrame_Clear(_PyInterpreterFrame *frame)
+ }
+ 
+ #endif
++
++#endif // CPython 3.13
+\ No newline at end of file
+diff --git a/torch/csrc/dynamo/cpython_defs.h b/torch/csrc/dynamo/cpython_defs.h
+index a897c3e6c6e7..3b6c9667f8c9 100644
+--- a/torch/csrc/dynamo/cpython_defs.h
++++ b/torch/csrc/dynamo/cpython_defs.h
+@@ -8,7 +8,9 @@
+ 
+ #if IS_PYTHON_3_11_PLUS
+ 
++#define Py_BUILD_CORE
+ #include <internal/pycore_frame.h>
++#undef Py_BUILD_CORE
+ 
+ int THP_PyFrame_FastToLocalsWithError(
+     _PyInterpreterFrame* frame,
+diff --git a/torch/csrc/dynamo/eval_frame.c b/torch/csrc/dynamo/eval_frame.c
+index c286e821f09d..e13cb5af2a0e 100644
+--- a/torch/csrc/dynamo/eval_frame.c
++++ b/torch/csrc/dynamo/eval_frame.c
+@@ -8,6 +8,31 @@
+ #include <opcode.h>
+ #include <stdbool.h>
+ 
++
++
++PyObject* guard_error_hook = NULL;
++const char* cache_lookup_profiler_str = "TorchDynamo Cache Lookup";
++
++static int active_dynamo_threads = 0;
++
++static Py_tss_t eval_frame_callback_key = Py_tss_NEEDS_INIT;
++
++inline static PyObject* eval_frame_callback_get(void) {
++  void* result = PyThread_tss_get(&eval_frame_callback_key);
++  if (unlikely(result == NULL)) {
++    return (PyObject*)Py_None;
++  } else {
++    return (PyObject*)result;
++  }
++}
++
++inline static void eval_frame_callback_set(PyObject* obj) {
++  PyThread_tss_set(&eval_frame_callback_key, obj);
++}
++
++// 3.13 Not supported at all. See cpython_defs.c for hints
++#if !(IS_PYTHON_3_13_PLUS)
++
+ // Problem in CPython includes when mixing core and non-core build
+ // The fix was not backported to 3.12 so this is needed here
+ // https://github.com/python/cpython/issues/105268
+@@ -138,24 +163,6 @@ THP_PyFrame_FastToLocalsWithError(THP_EVAL_API_FRAME_OBJECT *frame, int *free_va
+ }
+ #endif
+ 
+-PyObject* guard_error_hook = NULL;
+-const char* cache_lookup_profiler_str = "TorchDynamo Cache Lookup";
+-
+-static Py_tss_t eval_frame_callback_key = Py_tss_NEEDS_INIT;
+-
+-inline static PyObject* eval_frame_callback_get(void) {
+-  void* result = PyThread_tss_get(&eval_frame_callback_key);
+-  if (unlikely(result == NULL)) {
+-    return (PyObject*)Py_None;
+-  } else {
+-    return (PyObject*)result;
+-  }
+-}
+-
+-inline static void eval_frame_callback_set(PyObject* obj) {
+-  PyThread_tss_set(&eval_frame_callback_key, obj);
+-}
+-
+ static PyObject* _custom_eval_frame_shim(
+     PyThreadState* tstate,
+     THP_EVAL_API_FRAME_OBJECT* frame,
+@@ -627,7 +634,29 @@ static PyObject* _custom_eval_frame(
+   }
+ }
+ 
+-static int active_dynamo_threads = 0;
++#else // IS_PYTHON_3_13_PLUS
++
++// Fake definitions for everything we removed
++
++typedef struct THPPyInterpreterFrame {
++  PyObject_HEAD
++  _PyInterpreterFrame* frame; // Borrowed reference
++} THPPyInterpreterFrame;
++
++inline static void enable_eval_frame_shim(PyThreadState* tstate) {}
++inline static void enable_eval_frame_default(PyThreadState* tstate) {}
++
++static struct PyGetSetDef THPPyInterpreterFrame_properties[] = {NULL};
++
++static PyTypeObject THPPyInterpreterFrameType = {
++    PyVarObject_HEAD_INIT(NULL, 0)
++    .tp_name = "torch._C.dynamo.eval_frame._PyInterpreterFrame",
++    .tp_basicsize = sizeof(THPPyInterpreterFrame),
++    .tp_flags = Py_TPFLAGS_DEFAULT,
++    .tp_getset = THPPyInterpreterFrame_properties,
++};
++
++#endif // CPython 3.13
+ 
+ static PyObject* increment_working_threads(PyThreadState* tstate) {
+   active_dynamo_threads = active_dynamo_threads + 1;
+diff --git a/torch/csrc/utils/python_compat.h b/torch/csrc/utils/python_compat.h
+index 73b991cf3fbf..b060db00db73 100644
+--- a/torch/csrc/utils/python_compat.h
++++ b/torch/csrc/utils/python_compat.h
+@@ -11,6 +11,7 @@ extern "C" {
+ 
+ #define IS_PYTHON_3_11_PLUS PY_VERSION_HEX >= 0x030B00C1
+ #define IS_PYTHON_3_12_PLUS PY_VERSION_HEX >= 0x030C0000
++#define IS_PYTHON_3_13_PLUS PY_VERSION_HEX >= 0x030D0000
+ 
+ PYCAPI_COMPAT_STATIC_INLINE(int)
+ PyCode_GetNCellvars(PyCodeObject* code) {
+@@ -32,6 +33,9 @@ PyCode_GetNFreevars(PyCodeObject* code) {
+ #endif
+ }
+ 
++// Provided by CPython but getting the header for them is very hard
++extern void _PyWeakref_ClearRef(PyWeakReference* self);
++
+ #ifdef __cplusplus
+ }
+ #endif
+-- 
+2.45.1
+
