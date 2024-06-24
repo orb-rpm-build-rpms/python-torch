@@ -6,10 +6,10 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-# v2.4.0-rc3
-%global commit0 50e57d4f3fdbd51cea0ef9979bc61abd1a4e96c8
+# v2.4.0-rc5
+%global commit0 93c51dc84bb02bb3faafd217a12a1ff6264cc569
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240620
+%global date0 20240621
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.1
