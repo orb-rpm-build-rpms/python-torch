@@ -100,7 +100,12 @@
 # Pick a version that works
 %if %{with cuda}
 %if 0%{?fedora} < 40
-%global cuda_ver 12.4
+%global cuda_ver     12.5
+%global cudart_ver   12-5
+%global cublas_ver   12-5
+%global cufft_ver    12-5
+%global curand_ver   12-5
+%global cusparse_ver 12-5
 %else
 %global cuda_ver 12.5
 %endif
@@ -376,6 +381,14 @@ BuildRequires:  rocthrust-devel
 BuildRequires:  roctracer-devel
 
 Requires:       rocm-rpm-macros-modules
+%endif
+
+%if %{with cuda}
+BuildRequires:  cuda-cudart-devel-%{cudart_ver}
+BuildRequires:  libcublas-devel-%{cublas_ver}
+BuildRequires:  libcufft-devel-%{cufft_ver}
+BuildRequires:  libcurand-devel-%{curand_ver}
+BuildRequires:  libcusparse-devel-%{cusparse_ver}
 %endif
 
 %if %{with opencv}
