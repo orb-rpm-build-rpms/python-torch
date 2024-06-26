@@ -467,6 +467,14 @@ PyTorch is a Python package that provides two high-level features:
 You can reuse your favorite Python packages such as NumPy, SciPy,
 and Cython to extend PyTorch when needed.
 
+%if %{with cuda}
+%package -n python3-%{pypi_name}-cuda-%{cudart_ver}
+Summary:        %{name} for CUDA
+
+%description -n python3-%{pypi_name}-cuda-%{cudart_ver}
+%{summary}
+%endif
+
 %if %{with rocm}
 %package -n python3-%{pypi_name}-rocm-gfx8
 Summary:        %{name} for ROCm gfx8
@@ -1029,8 +1037,11 @@ done
 
 # Do not remote the empty files
 
-
-%files -n python3-%{pypi_name} 
+%if %{with cuda}
+%files -n python3-%{pypi_name}-cuda-%{cudart_ver}
+%else
+%files -n python3-%{pypi_name}
+%endif
 %license LICENSE
 %doc README.md 
 %{_bindir}/convert-caffe2-to-onnx
