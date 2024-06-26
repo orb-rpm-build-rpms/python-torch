@@ -6,8 +6,8 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-# v2.4.0-rc5
-%global commit0 93c51dc84bb02bb3faafd217a12a1ff6264cc569
+# v2.4.0-rc6
+%global commit0 699c05647931d3e4731828f07a3f34c4e0623eb9
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 %global date0 20240621
 %global pypi_version 2.4.0
@@ -779,6 +779,12 @@ rm caffe2/mobile/contrib/libopencl-stub/include/CL/*.h
 rm caffe2/mobile/contrib/libopencl-stub/include/CL/*.hpp
 %endif
 
+# Fix installing to /usr/lib64
+%if %{with gitcommit}
+sed -i -e 's@DESTINATION ${PYTHON_LIB_REL_PATH}@DESTINATION ${CMAKE_INSTALL_PREFIX}/${PYTHON_LIB_REL_PATH}@' caffe2/CMakeLists.txt
+%endif
+
+
 %if %{with rocm}
 # hipify
 ./tools/amd_build/build_amd.py
@@ -1015,7 +1021,9 @@ done
 %endif
 
 %else
+
 %py3_install
+
 
 %endif
 
@@ -1032,8 +1040,10 @@ done
 %{python3_sitearch}/%{pypi_name}-*.egg-info
 %{python3_sitearch}/functorch
 %{python3_sitearch}/torchgen
+%if %{without gitcommit}
 %if %{with caffe2}
 %{python3_sitearch}/caffe2
+%endif
 %endif
 
 %if %{with rocm}
