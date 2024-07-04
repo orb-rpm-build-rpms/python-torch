@@ -6,10 +6,10 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-# v2.4.0-rc6
-%global commit0 699c05647931d3e4731828f07a3f34c4e0623eb9
+# v2.4.0-rc7
+%global commit0 499621e7bbd30f9c7600f26a5fba0cf065faad5e
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240621
+%global date0 20240702
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.1
@@ -268,17 +268,19 @@ Patch10: 0001-Changes-to-compile-with-3.13-126033.patch
 
 # ROCm patches
 # Patches need to be refactored for ToT
-%if %{without gitcommit}
 # These are ROCm packages
 %if %{without cuda}
 # https://github.com/pytorch/pytorch/pull/120551
+%if %{without hipblaslt}
 Patch100:      0001-Optionally-use-hipblaslt.patch
+%endif
 Patch101:      0001-cuda-hip-signatures.patch
 Patch102:      0001-silence-an-assert.patch
+%if %{without gitcommit}
 Patch103:      0001-can-not-use-with-c-files.patch
-Patch104:      0001-use-any-hip.patch
-Patch105:      0001-disable-use-of-aotriton.patch
 %endif
+# Patch104:      0001-use-any-hip.patch
+Patch105:      0001-disable-use-of-aotriton.patch
 %endif
 
 ExclusiveArch:  x86_64 aarch64
@@ -631,6 +633,11 @@ sed -i -e 's/STATUS/FATAL/' caffe2/image/CMakeLists.txt
 %endif
 %endif
 
+# hipblaslt only building with gfx90a
+%if %{with hipblaslt}
+sed -i -e 's@"gfx90a", "gfx940", "gfx941", "gfx942"@"gfx90a"@' aten/src/ATen/native/cuda/Blas.cpp
+%endif
+
 %if 0%{?rhel}
 # In RHEL but too old
 sed -i -e '/typing-extensions/d' setup.py
@@ -798,6 +805,12 @@ sed -i -e 's@DESTINATION ${PYTHON_LIB_REL_PATH}@DESTINATION ${CMAKE_INSTALL_PREF
 ./tools/amd_build/build_amd.py
 # Fedora installs to /usr/include, not /usr/include/rocm-core
 sed -i -e 's@rocm-core/rocm_version.h@rocm_version.h@' aten/src/ATen/hip/tunable/TunableGemm.h
+# use any hip, correct CMAKE_MODULE_PATH
+sed -i -e 's@lib/cmake/hip@lib64/cmake/hip@' cmake/public/LoadHIP.cmake
+sed -i -e 's@HIP 1.0@HIP MODULE@'            cmake/public/LoadHIP.cmake
+# silence an assert
+# sed -i -e '/qvalue = std::clamp(qvalue, qmin, qmax);/d' aten/src/ATen/native/cuda/IndexKernel.cu
+
 %endif
 
 %if %{with cuda}
@@ -875,6 +888,7 @@ export USE_KINETO=OFF
 export USE_LITE_INTERPRETER_PROFILER=OFF
 export USE_LITE_PROTO=OFF
 export USE_MAGMA=OFF
+export USE_MEM_EFF_ATTENTION=OFF
 export USE_MKLDNN=OFF
 export USE_MPI=OFF
 export USE_MKLDNN=OFF
@@ -909,7 +923,9 @@ export USE_SYSTEM_XNNPACK=ON
 %endif
 
 %if %{with caffe2}
+%if %{without gitcommit}
 export BUILD_CAFFE2=ON
+%endif
 %endif
 
 %if %{with cuda}
