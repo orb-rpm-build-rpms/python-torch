@@ -289,6 +289,7 @@ ExclusiveArch:  x86_64 aarch64
 
 BuildRequires:  cmake
 BuildRequires:  eigen3-devel
+BuildRequires:  flexiblas-devel
 BuildRequires:  fmt-devel
 %if %{with caffe2}
 BuildRequires:  foxi-devel
@@ -315,7 +316,6 @@ BuildRequires:  libomp-devel
 BuildRequires:  openmpi-devel
 %endif
 %endif
-BuildRequires:  openblas-devel
 BuildRequires:  protobuf-devel
 BuildRequires:  sleef-devel
 BuildRequires:  valgrind-devel
