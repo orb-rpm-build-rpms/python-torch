@@ -6,10 +6,10 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-# v2.4.0-rc7
-%global commit0 499621e7bbd30f9c7600f26a5fba0cf065faad5e
+# v2.4.0-rc8
+%global commit0 e4ee3be4063b7c430974252fdf7db42273388d86
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240702
+%global date0 20240709
 %global pypi_version 2.4.0
 %else
 %global pypi_version 2.3.1
@@ -32,6 +32,8 @@
 %endif
 # hipblaslt is in development
 %bcond_with hipblaslt
+# magma is in development
+%bcond_with magma
 # Which families gpu build for
 %if 0%{?fedora} > 40
 %global rocm_gpu_list gfx8 gfx9 gfx10 gfx11 gfx90a gfx942 gfx1100
@@ -296,8 +298,8 @@ BuildRequires:  foxi-devel
 %endif
 
 %if %{with compat_gcc}
-BuildRequires:  compat-gcc-%{compat_gcc_major}-c++
-BuildRequires:  compat-gcc-%{compat_gcc_major}-gfortran
+BuildRequires:  gcc%{compat_gcc_major}-c++
+BuildRequires:  gcc%{compat_gcc_major}-gfortran
 %else
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
@@ -362,6 +364,9 @@ BuildRequires:  hipfft-devel
 BuildRequires:  hiprand-devel
 BuildRequires:  hipsparse-devel
 BuildRequires:  hipsolver-devel
+%if %{with magma}
+BuildRequires:  magma-devel
+%endif
 BuildRequires:  miopen-devel
 BuildRequires:  rocblas-devel
 BuildRequires:  rocrand-devel
@@ -849,9 +854,9 @@ fi
 export MAX_JOBS=$COMPILE_JOBS
 
 %if %{with compat_gcc}
-export CC=%{_bindir}/gcc%{compat_gcc_major}
-export CXX=%{_bindir}/g++%{compat_gcc_major}
-export FC=%{_bindir}/gfortran%{compat_gcc_major}
+export CC=%{_bindir}/gcc-%{compat_gcc_major}
+export CXX=%{_bindir}/g++-%{compat_gcc_major}
+export FC=%{_bindir}/gfortran-%{compat_gcc_major}
 %endif
 
 # For debugging setup.py
@@ -976,6 +981,9 @@ export BUILD_TEST=ON
 %if %{with rocm}
 
 export USE_ROCM=ON
+%if %{with magma}
+export USE_MAGMA=ON
+%endif
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
 export HIP_CLANG_PATH=`hipconfig -l`
