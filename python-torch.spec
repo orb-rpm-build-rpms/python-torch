@@ -284,6 +284,7 @@ Patch103:      0001-can-not-use-with-c-files.patch
 # Patch104:      0001-use-any-hip.patch
 Patch105:      0001-disable-use-of-aotriton.patch
 %endif
+Patch106:      0001-include-fmt-ranges.h-for-using-fmt-join.patch
 
 ExclusiveArch:  x86_64 aarch64
 %global toolchain gcc
