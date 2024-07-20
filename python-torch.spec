@@ -32,14 +32,14 @@
 %endif
 # hipblaslt is in development
 %bcond_with hipblaslt
-# magma is in development
-%bcond_with magma
 # Which families gpu build for
 %if 0%{?fedora} > 40
 %global rocm_gpu_list gfx8 gfx9 gfx10 gfx11 gfx90a gfx942 gfx1100
+%bcond_without magma
 %else
 # F40
 %global rocm_gpu_list gfx8 gfx9 gfx10 gfx11
+%bcond_with magma
 %endif
 %global rocm_default_gpu default
 %bcond_without rocm_loop
@@ -92,6 +92,16 @@
 %bcond_without pocketfft
 %else
 %bcond_with pocketfft
+%endif
+
+%if 0%{?fedora} > 40
+%if %{with gitcommit}
+%bcond_without fbgemm
+%else
+%bcond_with fbgemm
+%endif
+%else
+%bcond_with fbgemm
 %endif
 
 # For testing cuda
@@ -230,6 +240,10 @@ Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{
 %endif
 
 Patch0:        0001-no-third_party-foxi.patch
+%if %{with gitcommit}
+# https://github.com/pytorch/pytorch/pull/131282
+Patch1:        0001-Add-cmake-option-USE_SYSTEM_FBGEMM.patch
+%endif
 
 %if %{without gitcommit}
 Patch3:        0001-Stub-in-kineto-ActivityType.patch
@@ -265,7 +279,6 @@ Patch9:        0001-Enable-x86-CPU-vectorization-on-windows-submodule-sl.patch
 # For Python 3.13
 # https://github.com/pytorch/pytorch/pull/126033
 Patch10: 0001-Changes-to-compile-with-3.13-126033.patch
-
 %endif
 
 # ROCm patches
@@ -281,7 +294,6 @@ Patch102:      0001-silence-an-assert.patch
 %if %{without gitcommit}
 Patch103:      0001-can-not-use-with-c-files.patch
 %endif
-# Patch104:      0001-use-any-hip.patch
 Patch105:      0001-disable-use-of-aotriton.patch
 %endif
 Patch106:      0001-include-fmt-ranges.h-for-using-fmt-join.patch
@@ -292,6 +304,10 @@ ExclusiveArch:  x86_64 aarch64
 
 BuildRequires:  cmake
 BuildRequires:  eigen3-devel
+%if %{with fbgemm}
+BuildRequires:  asmjit-devel
+BuildRequires:  fbgemm-devel
+%endif
 BuildRequires:  flexiblas-devel
 BuildRequires:  fmt-devel
 %if %{with caffe2}
@@ -885,9 +901,14 @@ export INTERN_BUILD_MOBILE=OFF
 export USE_DISTRIBUTED=OFF
 export USE_CUDA=OFF
 export USE_FAKELOWP=OFF
+%if %{with fbgemm}
+export USE_FBGEMM=ON
+export USE_SYSTEM_FBGEMM=ON
+%else
 export USE_FBGEMM=OFF
+%endif
 export USE_FLASH_ATTENTION=OFF
-export USE_GOLD_LINKER=OFF
+export USE_GOLD_LINKER=ON
 export USE_GLOO=OFF
 export USE_ITT=OFF
 export USE_KINETO=OFF
