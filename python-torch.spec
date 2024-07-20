@@ -327,9 +327,10 @@ BuildRequires:  gcc-gfortran
 BuildRequires:  gloo-devel
 %endif
 %endif
+BuildRequires:  libomp-devel
+BuildRequires:  numactl-devel
 BuildRequires:  ninja-build
 BuildRequires:  onnx-devel
-BuildRequires:  libomp-devel
 %if %{with distributed}
 %if %{with mpi}
 BuildRequires:  openmpi-devel
@@ -918,7 +919,6 @@ export USE_MAGMA=OFF
 export USE_MEM_EFF_ATTENTION=OFF
 export USE_MKLDNN=OFF
 export USE_MPI=OFF
-export USE_MKLDNN=OFF
 export USE_NCCL=OFF
 export USE_NNPACK=OFF
 export USE_NUMPY=ON
