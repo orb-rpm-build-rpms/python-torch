@@ -12,7 +12,7 @@
 %global date0 20240709
 %global pypi_version 2.4.0
 %else
-%global pypi_version 2.3.1
+%global pypi_version 2.4.0
 %endif
 
 # For -test subpackage
@@ -63,18 +63,6 @@
 %bcond_with distributed
 %endif
 
-# OpenCV support came in F41
-%if 0%{?fedora} > 40
-%if %{without gitcommit}
-%bcond_without opencv
-%else
-# USE_OPENCV removed in 2.4.0+
-%bcond_with opencv
-%endif
-%else
-%bcond_with opencv
-%endif
-
 # Do no confuse xnnpack versions
 %if 0%{?fedora} > 40
 %bcond_without xnnpack
@@ -95,11 +83,7 @@
 %endif
 
 %if 0%{?fedora} > 40
-%if %{with gitcommit}
 %bcond_without fbgemm
-%else
-%bcond_with fbgemm
-%endif
 %else
 %bcond_with fbgemm
 %endif
@@ -139,15 +123,9 @@
 %endif
 			 
 # These came in 2.4 and not yet in Fedora
-%if %{with gitcommit}
 %bcond_with opentelemetry
 %bcond_with httplib
 %bcond_with kineto
-%else
-%bcond_without opentelemetry
-%bcond_without httplib
-%bcond_without kineto
-%endif
 
 Name:           python-%{pypi_name}
 %if %{with gitcommit}
@@ -220,7 +198,6 @@ Source40:       https://github.com/Maratyszcza/pthreadpool/archive/%{pt_commit}/
 Source50:       https://github.com/mreineck/pocketfft/archive/%{pf_commit}/pocketfft-%{pf_scommit}.tar.gz
 %endif
 
-%if %{with gitcommit}
 %if %{without opentelemetry}
 %global ot_ver 1.14.2
 Source60:       https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v%{ot_ver}.tar.gz
@@ -237,48 +214,13 @@ Source70:       https://github.com/yhirose/cpp-httplib/archive/%{hl_commit}/cpp-
 %global ki_scommit %(c=%{ki_commit}; echo ${c:0:7})
 Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{ki_scommit}.tar.gz
 %endif
-%endif
 
 Patch0:        0001-no-third_party-foxi.patch
-%if %{with gitcommit}
 # https://github.com/pytorch/pytorch/pull/131282
 Patch1:        0001-Add-cmake-option-USE_SYSTEM_FBGEMM.patch
-%endif
-
-%if %{without gitcommit}
-Patch3:        0001-Stub-in-kineto-ActivityType.patch
-%endif
 
 %if %{with caffe2}
 Patch6:        0001-reenable-foxi-linking.patch
-%endif
-
-# Bring some patches forward
-%if %{without gitcommit}
-# https://github.com/pytorch/pytorch/pull/123384
-# Breaks on python 3.13
-# Patch7:        0001-Reenable-dim-for-python-3.12.patch
-
-# Dynamo/Inductor on 3.12
-# Fails to apply on 2.3.1
-# Patch8:        0001-dynamo-3.12-enable-dynamo-on-3.12-enable-most-dynamo.patch
-%endif
-
-%if %{without gitcommit}
-# Enable x86 CPU vectorization on windows [submodule sleef] (#118980)
-# https://github.com/pytorch/pytorch/commit/56451cd49d9cf94b49197e09dec13426bb1a5370
-#
-# Despite the title, this patch fixes compatibility with sleef 3.6 by including
-# a backwards-compatible version of the fix from
-# https://github.com/pytorch/pytorch/pull/122723.
-# Cherry-picked on v2.3.0, without the commit to update the third_party/sleef
-# git submodule (because the release archive contains an actual sleef source
-# tree instead, so this would not apply.)
-Patch9:        0001-Enable-x86-CPU-vectorization-on-windows-submodule-sl.patch
-
-# For Python 3.13
-# https://github.com/pytorch/pytorch/pull/126033
-Patch10: 0001-Changes-to-compile-with-3.13-126033.patch
 %endif
 
 # ROCm patches
@@ -291,9 +233,6 @@ Patch100:      0001-Optionally-use-hipblaslt.patch
 %endif
 Patch101:      0001-cuda-hip-signatures.patch
 Patch102:      0001-silence-an-assert.patch
-%if %{without gitcommit}
-Patch103:      0001-can-not-use-with-c-files.patch
-%endif
 Patch105:      0001-disable-use-of-aotriton.patch
 %endif
 Patch106:      0001-include-fmt-ranges.h-for-using-fmt-join.patch
@@ -414,10 +353,6 @@ BuildRequires:  libcublas-devel-%{cublas_ver}
 BuildRequires:  libcufft-devel-%{cufft_ver}
 BuildRequires:  libcurand-devel-%{curand_ver}
 BuildRequires:  libcusparse-devel-%{cusparse_ver}
-%endif
-
-%if %{with opencv}
-BuildRequires:  opencv-devel
 %endif
 
 %if %{with test}
@@ -627,7 +562,6 @@ rm -rf third_party/pocketfft/*
 cp -r pocketfft-*/* third_party/pocketfft/
 %endif
 
-%if %{with gitcommit}
 %if %{without opentelemtry}
 tar xf %{SOURCE60}
 rm -rf third_party/opentelemetry-cpp/*
@@ -644,16 +578,6 @@ cp -r cpp-httplib-*/* third_party/cpp-httplib/
 tar xf %{SOURCE80}
 rm -rf third_party/kineto/*
 cp -r kineto-*/* third_party/kineto/
-%endif
-%endif
-
-%if %{with opencv}
-%if %{without gitcommit}
-# Reduce requirements, *FOUND is not set 
-sed -i -e 's/USE_OPENCV AND OpenCV_FOUND AND USE_FFMPEG AND FFMPEG_FOUND/USE_OPENCV AND USE_FFMPEG/' caffe2/video/CMakeLists.txt
-sed -i -e 's/USE_OPENCV AND OpenCV_FOUND/USE_OPENCV/' caffe2/image/CMakeLists.txt
-sed -i -e 's/STATUS/FATAL/' caffe2/image/CMakeLists.txt
-%endif
 %endif
 
 # hipblaslt only building with gfx90a
@@ -810,18 +734,8 @@ mkdir third_party/pocketfft
 mkdir third_party/valgrind-headers
 cp %{_includedir}/valgrind/* third_party/valgrind-headers
 
-%if %{without gitcommit}
-# Remove unneeded OpenCL files that confuse the lincense scanner
-rm caffe2/contrib/opencl/OpenCL/cl.hpp
-rm caffe2/mobile/contrib/libopencl-stub/include/CL/*.h
-rm caffe2/mobile/contrib/libopencl-stub/include/CL/*.hpp
-%endif
-
 # Fix installing to /usr/lib64
-%if %{with gitcommit}
 sed -i -e 's@DESTINATION ${PYTHON_LIB_REL_PATH}@DESTINATION ${CMAKE_INSTALL_PREFIX}/${PYTHON_LIB_REL_PATH}@' caffe2/CMakeLists.txt
-%endif
-
 
 %if %{with rocm}
 # hipify
@@ -924,9 +838,6 @@ export USE_NNPACK=OFF
 export USE_NUMPY=ON
 export USE_OPENMP=ON
 export USE_PYTORCH_QNNPACK=OFF
-%if %{without gitcommit}
-export USE_QNNPACK=OFF
-%endif
 export USE_ROCM=OFF
 export USE_SYSTEM_SLEEF=ON
 export USE_SYSTEM_EIGEN_INSTALL=ON
@@ -947,12 +858,6 @@ export USE_SYSTEM_FP16=ON
 export USE_SYSTEM_FXDIV=ON
 export USE_SYSTEM_PSIMD=ON
 export USE_SYSTEM_XNNPACK=ON
-%endif
-
-%if %{with caffe2}
-%if %{without gitcommit}
-export BUILD_CAFFE2=ON
-%endif
 %endif
 
 %if %{with cuda}
@@ -980,10 +885,6 @@ export USE_SYSTEM_GLOO=ON
 %if %{with mpi}
 export USE_MPI=ON
 %endif
-%endif
-
-%if %{with opencv}
-export USE_OPENCV=ON
 %endif
 
 %if %{with test}
@@ -1097,11 +998,6 @@ done
 %{python3_sitearch}/%{pypi_name}-*.egg-info
 %{python3_sitearch}/functorch
 %{python3_sitearch}/torchgen
-%if %{without gitcommit}
-%if %{with caffe2}
-%{python3_sitearch}/caffe2
-%endif
-%endif
 
 %if %{with rocm}
 %files -n python3-%{pypi_name}-rocm-gfx8
