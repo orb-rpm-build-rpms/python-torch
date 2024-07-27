@@ -83,7 +83,11 @@
 %endif
 
 %if 0%{?fedora} > 40
+%ifarch x86_64
 %bcond_without fbgemm
+%else
+%bcond_with fbgemm
+%endif
 %else
 %bcond_with fbgemm
 %endif
