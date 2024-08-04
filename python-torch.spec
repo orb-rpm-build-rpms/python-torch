@@ -34,7 +34,7 @@
 %bcond_with hipblaslt
 # Which families gpu build for
 %if 0%{?fedora} > 40
-%global rocm_gpu_list gfx8 gfx9 gfx10 gfx11 gfx90a gfx942 gfx1100
+%global rocm_gpu_list gfx9 gfx10 gfx11
 %bcond_without magma
 %else
 # F40
