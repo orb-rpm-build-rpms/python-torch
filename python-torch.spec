@@ -33,14 +33,8 @@
 # hipblaslt is in development
 %bcond_with hipblaslt
 # Which families gpu build for
-%if 0%{?fedora} > 40
 %global rocm_gpu_list gfx9 gfx10 gfx11
 %bcond_without magma
-%else
-# F40
-%global rocm_gpu_list gfx8 gfx9 gfx10 gfx11
-%bcond_with magma
-%endif
 %global rocm_default_gpu default
 %bcond_without rocm_loop
 
@@ -439,13 +433,6 @@ Summary:        %{name} for CUDA
 %{summary}
 %endif
 
-%if %{with rocm}
-%package -n python3-%{pypi_name}-rocm-gfx8
-Summary:        %{name} for ROCm gfx8
-
-%description -n python3-%{pypi_name}-rocm-gfx8
-%{summary}
-
 %package -n python3-%{pypi_name}-rocm-gfx9
 Summary:        %{name} for ROCm gfx9
 
@@ -463,25 +450,6 @@ Summary:        %{name} for ROCm gfx11
 
 %description -n python3-%{pypi_name}-rocm-gfx11
 %{summary}
-
-%if 0%{?fedora} > 40
-%package -n python3-%{pypi_name}-rocm-gfx90a
-Summary:        %{name} for ROCm MI200
-%description -n python3-%{pypi_name}-rocm-gfx90a
-%{summary}
-
-%package -n python3-%{pypi_name}-rocm-gfx942
-Summary:        %{name} for ROCm MI300
-%description -n python3-%{pypi_name}-rocm-gfx942
-%{summary}
-
-%package -n python3-%{pypi_name}-rocm-gfx1100
-Summary:        %{name} for W7900
-%description -n python3-%{pypi_name}-rocm-gfx1100
-%{summary}
-%endif
-
-%endif
 
 %if %{with test}
 %package -n python3-%{pypi_name}-test
@@ -1004,9 +972,6 @@ done
 %{python3_sitearch}/torchgen
 
 %if %{with rocm}
-%files -n python3-%{pypi_name}-rocm-gfx8
-%{_libdir}/rocm/gfx8/bin/*
-%{_libdir}/rocm/gfx8/lib64/*
 
 %files -n python3-%{pypi_name}-rocm-gfx9
 %{_libdir}/rocm/gfx9/bin/*
@@ -1019,20 +984,6 @@ done
 %files -n python3-%{pypi_name}-rocm-gfx11
 %{_libdir}/rocm/gfx11/bin/*
 %{_libdir}/rocm/gfx11/lib64/*
-
-%if 0%{?fedora} > 40
-%files -n python3-%{pypi_name}-rocm-gfx90a
-%{_libdir}/rocm/gfx90a/bin/*
-%{_libdir}/rocm/gfx90a/lib64/*
-
-%files -n python3-%{pypi_name}-rocm-gfx942
-%{_libdir}/rocm/gfx942/bin/*
-%{_libdir}/rocm/gfx942/lib64/*
-
-%files -n python3-%{pypi_name}-rocm-gfx1100
-%{_libdir}/rocm/gfx1100/bin/*
-%{_libdir}/rocm/gfx1100/lib64/*
-%endif
 
 %endif
 
