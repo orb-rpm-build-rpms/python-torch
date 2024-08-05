@@ -23,20 +23,13 @@
 %bcond_with test
 
 %ifarch x86_64
-# ROCm support came in F40
-%if 0%{?fedora} > 39
 %bcond_without rocm
-%else
-%bcond_with rocm
 %endif
-%endif
-# hipblaslt is in development
-%bcond_with hipblaslt
-# Which families gpu build for
-%global rocm_gpu_list gfx9 gfx10 gfx11
+%bcond_without hipblaslt
 %bcond_without magma
-%global rocm_default_gpu default
 %bcond_without rocm_loop
+%global rocm_default_gpu default
+%global rocm_gpu_list gfx9
 
 # Caffe2 support came in F41
 %if 0%{?fedora} > 40
@@ -437,18 +430,6 @@ Summary:        %{name} for CUDA
 Summary:        %{name} for ROCm gfx9
 
 %description -n python3-%{pypi_name}-rocm-gfx9
-%{summary}
-
-%package -n python3-%{pypi_name}-rocm-gfx10
-Summary:        %{name} for ROCm gfx10
-
-%description -n python3-%{pypi_name}-rocm-gfx10
-%{summary}
-
-%package -n python3-%{pypi_name}-rocm-gfx11
-Summary:        %{name} for ROCm gfx11
-
-%description -n python3-%{pypi_name}-rocm-gfx11
 %{summary}
 
 %if %{with test}
@@ -976,14 +957,6 @@ done
 %files -n python3-%{pypi_name}-rocm-gfx9
 %{_libdir}/rocm/gfx9/bin/*
 %{_libdir}/rocm/gfx9/lib64/*
-
-%files -n python3-%{pypi_name}-rocm-gfx10
-%{_libdir}/rocm/gfx10/bin/*
-%{_libdir}/rocm/gfx10/lib64/*
-
-%files -n python3-%{pypi_name}-rocm-gfx11
-%{_libdir}/rocm/gfx11/bin/*
-%{_libdir}/rocm/gfx11/lib64/*
 
 %endif
 
