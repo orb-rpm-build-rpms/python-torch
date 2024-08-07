@@ -69,14 +69,14 @@
 %bcond_with pocketfft
 %endif
 
-%if 0%{?fedora} > 40
 %ifarch x86_64
-%bcond_without fbgemm
+  %if %{with rocm}
+    %bcond_with fbgemm
+  %else
+    %bcond_without fbgemm
+  %endif
 %else
-%bcond_with fbgemm
-%endif
-%else
-%bcond_with fbgemm
+  %bcond_with fbgemm
 %endif
 
 # For testing cuda
