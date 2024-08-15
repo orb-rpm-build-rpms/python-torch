@@ -6,11 +6,10 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-# v2.4.0-rc8
-%global commit0 e4ee3be4063b7c430974252fdf7db42273388d86
+%global commit0 9876aa39c02861b1ad250e36a25a4f85fe3a6800
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240709
-%global pypi_version 2.4.0
+%global date0 20240813
+%global pypi_version 2.5.0
 %else
 %global pypi_version 2.4.0
 %endif
@@ -206,12 +205,20 @@ Source70:       https://github.com/yhirose/cpp-httplib/archive/%{hl_commit}/cpp-
 Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{ki_scommit}.tar.gz
 %endif
 
+%if %{without gitcommit}
 Patch0:        0001-no-third_party-foxi.patch
+%endif
 # https://github.com/pytorch/pytorch/pull/131282
 Patch1:        0001-Add-cmake-option-USE_SYSTEM_FBGEMM.patch
 
 %if %{with caffe2}
 Patch6:        0001-reenable-foxi-linking.patch
+%endif
+
+%if %{with gitcommit}
+# https://github.com/pytorch/pytorch/pull/133451
+Patch10:       0001-Only-include-aotriton-if-it-is-needed.patch
+Patch11:       0002-Improve-finding-and-using-the-rocm_version.h.patch
 %endif
 
 # ROCm patches
@@ -223,10 +230,17 @@ Patch6:        0001-reenable-foxi-linking.patch
 Patch100:      0001-Optionally-use-hipblaslt.patch
 %endif
 Patch101:      0001-cuda-hip-signatures.patch
+%if %{without gitcommit}
 Patch102:      0001-silence-an-assert.patch
+%endif
+%if %{without gitcommit}
 Patch105:      0001-disable-use-of-aotriton.patch
 %endif
+%endif
+
+%if %{without gitcommit}
 Patch106:      0001-include-fmt-ranges.h-for-using-fmt-join.patch
+%endif
 
 ExclusiveArch:  x86_64 aarch64
 %global toolchain gcc
@@ -283,7 +297,11 @@ BuildRequires:  cpuinfo-devel
 BuildRequires:  FP16-devel
 BuildRequires:  fxdiv-devel
 BuildRequires:  psimd-devel
+%if %{with gitcommit}
+BuildRequires:  xnnpack-devel = 0.0^git20240814.312eb7e
+%else
 BuildRequires:  xnnpack-devel = 0.0^git20240229.fcbf55a
+%endif
 %endif
 
 BuildRequires:  python3-devel
@@ -951,6 +969,9 @@ done
 %{python3_sitearch}/%{pypi_name}-*.egg-info
 %{python3_sitearch}/functorch
 %{python3_sitearch}/torchgen
+%if %{with gitcommit}
+%{python3_sitearch}/benchmarks
+%endif
 
 %if %{with rocm}
 
