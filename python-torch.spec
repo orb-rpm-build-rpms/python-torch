@@ -6,9 +6,9 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-%global commit0 9876aa39c02861b1ad250e36a25a4f85fe3a6800
+%global commit0 d01a7a9faa5a742a3df7374b97bbc1db1205b6ed
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240813
+%global date0 20240828
 %global pypi_version 2.5.0
 %else
 %global pypi_version 2.4.0
@@ -56,17 +56,8 @@
 %bcond_with xnnpack
 %endif
 
-%if 0%{?fedora} > 39
 %bcond_without pthreadpool
-%else
-%bcond_with pthreadpool
-%endif
-
-%if 0%{?fedora} > 39
 %bcond_without pocketfft
-%else
-%bcond_with pocketfft
-%endif
 
 %ifarch x86_64
   %if %{with rocm}
@@ -145,7 +136,6 @@ Source10:       https://github.com/NVIDIA/cudnn-frontend/archive/refs/tags/v%{cu
 Source11:       https://github.com/NVIDIA/cutlass/archive/refs/tags/v%{cul_ver}.tar.gz
 %endif
 
-%if %{with tensorpipe}
 # Developement on tensorpipe has stopped, repo made read only July 1, 2023, this is the last commit
 %global tp_commit 52791a2fd214b2a9dc5759d36725909c1daa7f2e
 %global tp_scommit %(c=%{tp_commit}; echo ${c:0:7})
@@ -156,7 +146,6 @@ Source21:       https://github.com/libuv/libuv/archive/refs/tags/v1.41.0.tar.gz
 %global nop_commit 910b55815be16109f04f4180e9adee14fb4ce281
 %global nop_scommit %(c=%{nop_commit}; echo ${c:0:7})
 Source22:       https://github.com/google/libnop/archive/%{nop_commit}/libnop-%{nop_scommit}.tar.gz
-%endif
 
 %if %{without xnnpack}
 %global xnn_commit fcbf55af6cf28a4627bcd1f703ab7ad843f0f3a2
@@ -171,7 +160,7 @@ Source32:       https://github.com/Maratyszcza/FP16/archive/%{fp_commit}/FP16-%{
 %global ps_commit 072586a71b55b7f8c584153d223e95687148a900
 %global ps_scommit %(c=%{ps_commit}; echo ${c:0:7})
 Source33:       https://github.com/Maratyszcza/psimd/archive/%{ps_commit}/psimd-%{ps_scommit}.tar.gz
-%global ci_commit d6860c477c99f1fce9e28eb206891af3c0e1a1d7
+%global ci_commit 16bfc1622c6902d6f91d316ec54894910c620325
 %global ci_scommit %(c=%{ci_commit}; echo ${c:0:7})
 Source34:       https://github.com/pytorch/cpuinfo/archive/%{ci_commit}/cpuinfo-%{ci_scommit}.tar.gz
 %endif
@@ -207,17 +196,13 @@ Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{
 
 %if %{without gitcommit}
 Patch0:        0001-no-third_party-foxi.patch
-%endif
 # https://github.com/pytorch/pytorch/pull/131282
 Patch1:        0001-Add-cmake-option-USE_SYSTEM_FBGEMM.patch
 
-%if %{with caffe2}
-Patch6:        0001-reenable-foxi-linking.patch
 %endif
 
+
 %if %{with gitcommit}
-# https://github.com/pytorch/pytorch/pull/133451
-Patch10:       0001-Only-include-aotriton-if-it-is-needed.patch
 Patch11:       0002-Improve-finding-and-using-the-rocm_version.h.patch
 %endif
 
@@ -271,6 +256,10 @@ BuildRequires:  gcc-gfortran
 BuildRequires:  gloo-devel
 %endif
 %endif
+%if %{with gitcommit}
+BuildRequires:  json-devel
+%endif
+
 BuildRequires:  libomp-devel
 BuildRequires:  numactl-devel
 BuildRequires:  ninja-build
@@ -573,6 +562,9 @@ sed -i -e 's@fmt::fmt-header-only@fmt@' CMakeLists.txt
 sed -i -e 's@fmt::fmt-header-only@fmt@' c10/CMakeLists.txt
 sed -i -e 's@fmt::fmt-header-only@fmt@' torch/CMakeLists.txt
 sed -i -e 's@fmt::fmt-header-only@fmt@' cmake/Dependencies.cmake
+%if %{with gitcommit}
+sed -i -e 's@fmt::fmt-header-only@fmt@' caffe2/CMakeLists.txt
+%endif
 sed -i -e 's@add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)@#add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)@' cmake/Dependencies.cmake
 sed -i -e 's@set_target_properties(fmt-header-only PROPERTIES INTERFACE_COMPILE_FEATURES "")@#set_target_properties(fmt-header-only PROPERTIES INTERFACE_COMPILE_FEATURES "")@' cmake/Dependencies.cmake
 sed -i -e 's@list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@#list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@' cmake/Dependencies.cmake
@@ -707,6 +699,9 @@ cp %{_includedir}/valgrind/* third_party/valgrind-headers
 
 # Fix installing to /usr/lib64
 sed -i -e 's@DESTINATION ${PYTHON_LIB_REL_PATH}@DESTINATION ${CMAKE_INSTALL_PREFIX}/${PYTHON_LIB_REL_PATH}@' caffe2/CMakeLists.txt
+
+# reenable foxi linking
+sed -i -e 's@list(APPEND Caffe2_DEPENDENCY_LIBS foxi_loader)@#list(APPEND Caffe2_DEPENDENCY_LIBS foxi_loader)@' cmake/Dependencies.cmake
 
 %if %{with rocm}
 # hipify
@@ -969,9 +964,6 @@ done
 %{python3_sitearch}/%{pypi_name}-*.egg-info
 %{python3_sitearch}/functorch
 %{python3_sitearch}/torchgen
-%if %{with gitcommit}
-%{python3_sitearch}/benchmarks
-%endif
 
 %if %{with rocm}
 
