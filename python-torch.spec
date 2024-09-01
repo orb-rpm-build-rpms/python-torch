@@ -348,6 +348,18 @@ BuildRequires:  google-benchmark-devel
 
 Requires:       python3dist(dill)
 
+%description
+PyTorch is a Python package that provides two high-level features:
+
+ * Tensor computation (like NumPy) with strong GPU acceleration
+ * Deep neural networks built on a tape-based autograd system
+
+You can reuse your favorite Python packages such as NumPy, SciPy,
+and Cython to extend PyTorch when needed.
+
+%package -n     python3-%{pypi_name}
+Summary:        %{summary}
+
 # For convience
 Provides:       pytorch
 
@@ -389,21 +401,6 @@ Provides:       bundled(pthreadpool)
 # BSD-3-Clause
 Provides:       bundled(pocketfft)
 %endif
-
-# For convience
-Provides:       pytorch
-
-%description
-PyTorch is a Python package that provides two high-level features:
-
- * Tensor computation (like NumPy) with strong GPU acceleration
- * Deep neural networks built on a tape-based autograd system
-
-You can reuse your favorite Python packages such as NumPy, SciPy,
-and Cython to extend PyTorch when needed.
-
-%package -n     python3-%{pypi_name}
-Summary:        %{summary}
 
 %description -n python3-%{pypi_name}
 PyTorch is a Python package that provides two high-level features:
