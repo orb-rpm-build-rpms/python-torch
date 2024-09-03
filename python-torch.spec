@@ -342,7 +342,9 @@ BuildRequires:  rocm-rpm-macros-modules
 BuildRequires:  rocthrust-devel
 BuildRequires:  roctracer-devel
 
+Requires:       amdsmi
 Requires:       rocm-rpm-macros-modules
+
 %endif
 
 %if %{with cuda}
