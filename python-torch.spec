@@ -74,19 +74,8 @@
 %bcond_with cuda
 %endif
 
-# Pick a version that works
-%if %{with cuda}
-%if 0%{?fedora} < 40
-%global cuda_ver     12.5
-%global cudart_ver   12-5
-%global cublas_ver   12-5
-%global cufft_ver    12-5
-%global curand_ver   12-5
-%global cusparse_ver 12-5
-%else
+# Pick a CUDA version that works
 %global cuda_ver 12.5
-%endif
-%endif
 
 # For testing compat-gcc
 %global compat_gcc_major 13
@@ -348,11 +337,11 @@ Requires:       rocm-rpm-macros-modules
 %endif
 
 %if %{with cuda}
-BuildRequires:  cuda-cudart-devel-%{cudart_ver}
-BuildRequires:  libcublas-devel-%{cublas_ver}
-BuildRequires:  libcufft-devel-%{cufft_ver}
-BuildRequires:  libcurand-devel-%{curand_ver}
-BuildRequires:  libcusparse-devel-%{cusparse_ver}
+BuildRequires:  cuda-cudart-devel-%{cuda_ver}
+BuildRequires:  libcublas-devel-%{cuda_ver}
+BuildRequires:  libcufft-devel-%{cuda_ver}
+BuildRequires:  libcurand-devel-%{cuda_ver}
+BuildRequires:  libcusparse-devel-%{cuda_ver}
 %endif
 
 %if %{with test}
@@ -428,10 +417,10 @@ You can reuse your favorite Python packages such as NumPy, SciPy,
 and Cython to extend PyTorch when needed.
 
 %if %{with cuda}
-%package -n python3-%{pypi_name}-cuda-%{cudart_ver}
+%package -n python3-%{pypi_name}-cuda-%{cuda_ver}
 Summary:        %{name} for CUDA
 
-%description -n python3-%{pypi_name}-cuda-%{cudart_ver}
+%description -n python3-%{pypi_name}-cuda-%{cuda_ver}
 %{summary}
 %endif
 
@@ -953,7 +942,7 @@ done
 # Do not remote the empty files
 
 %if %{with cuda}
-%files -n python3-%{pypi_name}-cuda-%{cudart_ver}
+%files -n python3-%{pypi_name}-cuda-%{cuda_ver}
 %else
 %files -n python3-%{pypi_name}
 %endif
