@@ -6,9 +6,9 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-%global commit0 d01a7a9faa5a742a3df7374b97bbc1db1205b6ed
+%global commit0 8df01c82587f80b2800c6cfcbabe168d96cba731
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240828
+%global date0 20240914
 %global pypi_version 2.5.0
 %else
 %global pypi_version 2.4.1
@@ -962,6 +962,9 @@ done
 %{_bindir}/convert-caffe2-to-onnx
 %{_bindir}/convert-onnx-to-caffe2
 %{_bindir}/torchrun
+%if %{with gitcommit}
+%{_bindir}/torchfrtrace
+%endif
 %{python3_sitearch}/%{pypi_name}
 %{python3_sitearch}/%{pypi_name}-*.egg-info
 %{python3_sitearch}/functorch
