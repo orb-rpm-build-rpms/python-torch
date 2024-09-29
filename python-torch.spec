@@ -222,6 +222,7 @@ ExclusiveArch:  x86_64 aarch64
 %global _lto_cflags %nil
 
 BuildRequires:  cmake
+BuildRequires:  binutils-gold
 BuildRequires:  eigen3-devel
 %if %{with fbgemm}
 BuildRequires:  asmjit-devel
