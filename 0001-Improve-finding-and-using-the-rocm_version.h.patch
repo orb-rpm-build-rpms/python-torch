@@ -1,0 +1,142 @@
+From 201ac4618a1526e048a0d6c02d9bc4cf30bf0ee1 Mon Sep 17 00:00:00 2001
+From: Tom Rix <Tom.Rix@amd.com>
+Date: Wed, 14 Aug 2024 17:18:38 -0700
+Subject: [PATCH] Improve finding and using the rocm_version.h
+
+On Fedora, the rocm_version.h's path is /usr/include/rocm_version.h
+So we have this build error
+pytorch/aten/src/ATen/hip/tunable/Tunable.cpp:40:10: fatal error:
+  rocm-core/rocm_version.h: No such file or directory
+   40 | #include <rocm-core/rocm_version.h>
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In other cases, depending on the rocm release either
+/opt/rocm/include or /opt/rocm/include/rocm-core
+
+Convert the EXISTS() checks into a find_path.
+Add a -I${ROCM_VERSION_DIR} to the compile options so it can be
+found by Tunable.cpp
+
+Signed-off-by: Tom Rix <Tom.Rix@amd.com>
+---
+ aten/src/ATen/cuda/tunable/Tunable.cpp |  2 +-
+ cmake/Dependencies.cmake               |  1 +
+ cmake/public/LoadHIP.cmake             | 72 ++++++++++----------------
+ 3 files changed, 30 insertions(+), 45 deletions(-)
+
+diff --git a/aten/src/ATen/cuda/tunable/Tunable.cpp b/aten/src/ATen/cuda/tunable/Tunable.cpp
+index 1b7c89875855..32c1d70f3152 100644
+--- a/aten/src/ATen/cuda/tunable/Tunable.cpp
++++ b/aten/src/ATen/cuda/tunable/Tunable.cpp
+@@ -36,7 +36,7 @@
+ 
+ // for validators
+ #ifdef USE_ROCM
+-#include <rocm-core/rocm_version.h>
++#include <rocm_version.h>
+ #define ROCBLAS_BETA_FEATURES_API
+ #include <rocblas/rocblas.h>
+ #include <hipblaslt/hipblaslt.h>
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 7ef8eabb5162..61bc4d7a54b6 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1063,6 +1063,7 @@ if(USE_ROCM)
+     list(APPEND HIP_CXX_FLAGS -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_HIP)
+     list(APPEND HIP_CXX_FLAGS -std=c++17)
+     list(APPEND HIP_CXX_FLAGS -DHIPBLAS_V2)
++    list(APPEND HIP_CXX_FLAGS -I${ROCM_VERSION_DIR})
+     if(HIP_NEW_TYPE_ENUMS)
+       list(APPEND HIP_CXX_FLAGS -DHIP_NEW_TYPE_ENUMS)
+     endif()
+diff --git a/cmake/public/LoadHIP.cmake b/cmake/public/LoadHIP.cmake
+index 1c0d3a203991..6a7e3bd163f5 100644
+--- a/cmake/public/LoadHIP.cmake
++++ b/cmake/public/LoadHIP.cmake
+@@ -42,55 +42,39 @@ find_package_and_print_version(HIP 1.0)
+ 
+ if(HIP_FOUND)
+   set(PYTORCH_FOUND_HIP TRUE)
+-  set(FOUND_ROCM_VERSION_H FALSE)
+-
+   set(PROJECT_RANDOM_BINARY_DIR "${PROJECT_BINARY_DIR}")
+-  set(file "${PROJECT_BINARY_DIR}/detect_rocm_version.cc")
+ 
+   # Find ROCM version for checks
+   # ROCM 5.0 and later will have header api for version management
+-  if(EXISTS ${ROCM_INCLUDE_DIRS}/rocm_version.h)
+-    set(FOUND_ROCM_VERSION_H TRUE)
+-    file(WRITE ${file} ""
+-      "#include <rocm_version.h>\n"
+-      )
+-  elseif(EXISTS ${ROCM_INCLUDE_DIRS}/rocm-core/rocm_version.h)
+-    set(FOUND_ROCM_VERSION_H TRUE)
+-    file(WRITE ${file} ""
+-      "#include <rocm-core/rocm_version.h>\n"
+-      )
+-  else()
+-    message("********************* rocm_version.h couldnt be found ******************\n")
+-  endif()
+-
+-  if(FOUND_ROCM_VERSION_H)
+-    file(APPEND ${file} ""
+-      "#include <cstdio>\n"
+-
+-      "#ifndef ROCM_VERSION_PATCH\n"
+-      "#define ROCM_VERSION_PATCH 0\n"
+-      "#endif\n"
+-      "#define STRINGIFYHELPER(x) #x\n"
+-      "#define STRINGIFY(x) STRINGIFYHELPER(x)\n"
+-      "int main() {\n"
+-      "  printf(\"%d.%d.%s\", ROCM_VERSION_MAJOR, ROCM_VERSION_MINOR, STRINGIFY(ROCM_VERSION_PATCH));\n"
+-      "  return 0;\n"
+-      "}\n"
+-      )
+-
+-    try_run(run_result compile_result ${PROJECT_RANDOM_BINARY_DIR} ${file}
+-      CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${ROCM_INCLUDE_DIRS}"
+-      RUN_OUTPUT_VARIABLE rocm_version_from_header
+-      COMPILE_OUTPUT_VARIABLE output_var
+-      )
+-    # We expect the compile to be successful if the include directory exists.
+-    if(NOT compile_result)
+-      message(FATAL_ERROR "Caffe2: Couldn't determine version from header: " ${output_var})
+-    endif()
+-    message(STATUS "Caffe2: Header version is: " ${rocm_version_from_header})
+-    set(ROCM_VERSION_DEV_RAW ${rocm_version_from_header})
+-    message("\n***** ROCm version from rocm_version.h ****\n")
++  find_path(ROCM_VERSION_DIR rocm_version.h HINTS ${ROCM_INCLUDE_DIRS} ${ROCM_INCLUDE_DIRS}/rocm-core)
++  set(file "${PROJECT_BINARY_DIR}/detect_rocm_version.cc")
++  file(WRITE ${file} ""
++    "#include <rocm_version.h>\n"
++    "#include <cstdio>\n"
++
++    "#ifndef ROCM_VERSION_PATCH\n"
++    "#define ROCM_VERSION_PATCH 0\n"
++    "#endif\n"
++    "#define STRINGIFYHELPER(x) #x\n"
++    "#define STRINGIFY(x) STRINGIFYHELPER(x)\n"
++    "int main() {\n"
++    "  printf(\"%d.%d.%s\", ROCM_VERSION_MAJOR, ROCM_VERSION_MINOR, STRINGIFY(ROCM_VERSION_PATCH));\n"
++    "  return 0;\n"
++    "}\n"
++  )
++
++  try_run(run_result compile_result ${PROJECT_RANDOM_BINARY_DIR} ${file}
++    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${ROCM_VERSION_DIR}"
++    RUN_OUTPUT_VARIABLE rocm_version_from_header
++    COMPILE_OUTPUT_VARIABLE output_var
++  )
++  # We expect the compile to be successful if the include directory exists.
++  if(NOT compile_result)
++    message(FATAL_ERROR "Caffe2: Couldn't determine version from header: " ${output_var})
+   endif()
++  message(STATUS "Caffe2: Header version is: " ${rocm_version_from_header})
++  set(ROCM_VERSION_DEV_RAW ${rocm_version_from_header})
++  message("\n***** ROCm version from rocm_version.h ****\n")
+ 
+   string(REGEX MATCH "^([0-9]+)\.([0-9]+)\.([0-9]+).*$" ROCM_VERSION_DEV_MATCH ${ROCM_VERSION_DEV_RAW})
+ 
+-- 
+2.46.0
+
