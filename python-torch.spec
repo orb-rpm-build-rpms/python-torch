@@ -323,6 +323,7 @@ BuildRequires:  rccl-devel
 BuildRequires:  rocprim-devel
 BuildRequires:  rocm-cmake
 BuildRequires:  rocm-comgr-devel
+BuildRequires:  rocm-compilersupport-macros
 BuildRequires:  rocm-core-devel
 BuildRequires:  rocm-hip-devel
 BuildRequires:  rocm-runtime-devel
@@ -866,8 +867,7 @@ export USE_MAGMA=ON
 %endif
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
-export HIP_CLANG_PATH=`hipconfig -l`
-RESOURCE_DIR=`${HIP_CLANG_PATH}/clang -print-resource-dir`
+RESOURCE_DIR=`%{_libdir}/llvm%{rocmllvm_version}/bin/clang -print-resource-dir`
 export DEVICE_LIB_PATH=${RESOURCE_DIR}/amdgcn/bitcode
 
 gpu=%{rocm_default_gpu}
@@ -906,8 +906,7 @@ export FC=%{_bindir}/gfortran%{compat_gcc_major}
 export USE_ROCM=ON
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
-export HIP_CLANG_PATH=`hipconfig -l`
-RESOURCE_DIR=`${HIP_CLANG_PATH}/clang -print-resource-dir`
+RESOURCE_DIR=`%{_libdir}/llvm%{rocmllvm_version}/bin/clang -print-resource-dir`
 export DEVICE_LIB_PATH=${RESOURCE_DIR}/amdgcn/bitcode
 
 gpu=%{rocm_default_gpu}
