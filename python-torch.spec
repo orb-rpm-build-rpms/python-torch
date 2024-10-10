@@ -548,6 +548,8 @@ sed -i -e '/fsspec/d' setup.py
 # A new dependency
 # Connected to USE_FLASH_ATTENTION, since this is off, do not need it
 sed -i -e '/aotriton.cmake/d' cmake/Dependencies.cmake
+# Compress hip
+sed -i -e 's@HIP_CLANG_FLAGS -fno-gpu-rdc@HIP_CLANG_FLAGS -fno-gpu-rdc --offload-compress@' cmake/Dependencies.cmake
 
 # No third_party fmt, use system
 sed -i -e 's@fmt::fmt-header-only@fmt@' CMakeLists.txt
@@ -870,6 +872,14 @@ export ROCM_PATH=`hipconfig -R`
 RESOURCE_DIR=`%{_libdir}/llvm%{rocmllvm_version}/bin/clang -print-resource-dir`
 export DEVICE_LIB_PATH=${RESOURCE_DIR}/amdgcn/bitcode
 
+# pytorch uses clang, not hipcc
+LLVM_BINDIR=`llvm-config-%{rocmllvm_version} --bindir`
+if [ ! -x ${LLVM_BINDIR}/clang ]; then
+    echo "Something wrong with llvm-config"
+    false
+fi
+export HIP_CLANG_PATH=${LLVM_BINDIR}
+
 gpu=%{rocm_default_gpu}
 module load rocm/$gpu
 export PYTORCH_ROCM_ARCH=$ROCM_GPUS
@@ -908,6 +918,14 @@ export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
 RESOURCE_DIR=`%{_libdir}/llvm%{rocmllvm_version}/bin/clang -print-resource-dir`
 export DEVICE_LIB_PATH=${RESOURCE_DIR}/amdgcn/bitcode
+
+# pytorch uses clang, not hipcc
+LLVM_BINDIR=`llvm-config-%{rocmllvm_version} --bindir`
+if [ ! -x ${LLVM_BINDIR}/clang ]; then
+    echo "Something wrong with llvm-config"
+    false
+fi
+export HIP_CLANG_PATH=${LLVM_BINDIR}
 
 gpu=%{rocm_default_gpu}
 module load rocm/$gpu
