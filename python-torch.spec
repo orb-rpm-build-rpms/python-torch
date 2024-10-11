@@ -6,9 +6,10 @@
 # So pre releases can be tried
 %bcond_with gitcommit
 %if %{with gitcommit}
-%global commit0 8df01c82587f80b2800c6cfcbabe168d96cba731
+# v2.5.0-rc9
+%global commit0 417a0763a7d69f6ce80719ac89c1d2deeee78163
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
-%global date0 20240914
+%global date0 2024103
 %global pypi_version 2.5.0
 %else
 %global pypi_version 2.4.1
@@ -192,7 +193,7 @@ Patch1:        0001-Add-cmake-option-USE_SYSTEM_FBGEMM.patch
 
 
 %if %{with gitcommit}
-Patch11:       0002-Improve-finding-and-using-the-rocm_version.h.patch
+Patch11:       0001-Improve-finding-and-using-the-rocm_version.h.patch
 %endif
 
 # ROCm patches
