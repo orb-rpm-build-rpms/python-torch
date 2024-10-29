@@ -276,11 +276,7 @@ BuildRequires:  cpuinfo-devel
 BuildRequires:  FP16-devel
 BuildRequires:  fxdiv-devel
 BuildRequires:  psimd-devel
-%if %{with gitcommit}
 BuildRequires:  xnnpack-devel = 0.0^git20240814.312eb7e
-%else
-BuildRequires:  xnnpack-devel = 0.0^git20240229.fcbf55a
-%endif
 %endif
 
 BuildRequires:  python3-devel
