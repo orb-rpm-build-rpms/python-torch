@@ -864,16 +864,11 @@ export USE_MAGMA=ON
 %endif
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
-RESOURCE_DIR=`%{_libdir}/llvm%{rocmllvm_version}/bin/clang -print-resource-dir`
+RESOURCE_DIR=`%{rocmllvm_bindir}/clang -print-resource-dir`
 export DEVICE_LIB_PATH=${RESOURCE_DIR}/amdgcn/bitcode
 
 # pytorch uses clang, not hipcc
-LLVM_BINDIR=`llvm-config-%{rocmllvm_version} --bindir`
-if [ ! -x ${LLVM_BINDIR}/clang ]; then
-    echo "Something wrong with llvm-config"
-    false
-fi
-export HIP_CLANG_PATH=${LLVM_BINDIR}
+export HIP_CLANG_PATH=%{rocmllvm_bindir}
 
 gpu=%{rocm_default_gpu}
 module load rocm/$gpu
@@ -911,16 +906,11 @@ export FC=%{_bindir}/gfortran%{compat_gcc_major}
 export USE_ROCM=ON
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
-RESOURCE_DIR=`%{_libdir}/llvm%{rocmllvm_version}/bin/clang -print-resource-dir`
+RESOURCE_DIR=`%{rocmllvm_bindir}/clang -print-resource-dir`
 export DEVICE_LIB_PATH=${RESOURCE_DIR}/amdgcn/bitcode
 
 # pytorch uses clang, not hipcc
-LLVM_BINDIR=`llvm-config-%{rocmllvm_version} --bindir`
-if [ ! -x ${LLVM_BINDIR}/clang ]; then
-    echo "Something wrong with llvm-config"
-    false
-fi
-export HIP_CLANG_PATH=${LLVM_BINDIR}
+export HIP_CLANG_PATH=%{rocmllvm_bindir}
 
 gpu=%{rocm_default_gpu}
 module load rocm/$gpu
