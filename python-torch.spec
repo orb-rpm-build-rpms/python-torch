@@ -12,7 +12,7 @@
 %global date0 2024103
 %global pypi_version 2.5.0
 %else
-%global pypi_version 2.4.1
+%global pypi_version 2.5.0
 %endif
 
 # For -test subpackage
@@ -27,7 +27,7 @@
 %endif
 %bcond_without hipblaslt
 %bcond_without magma
-%bcond_without rocm_loop
+%bcond_with rocm_loop
 %global rocm_default_gpu default
 %global rocm_gpu_list gfx9
 
@@ -42,7 +42,7 @@
 %if 0%{?fedora} > 40
 %bcond_without distributed
 # For testing distributed+rccl etc.
-%bcond_without rccl
+%bcond_with rccl
 %bcond_with gloo
 %bcond_without mpi
 %bcond_without tensorpipe
@@ -184,17 +184,7 @@ Source70:       https://github.com/yhirose/cpp-httplib/archive/%{hl_commit}/cpp-
 Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{ki_scommit}.tar.gz
 %endif
 
-%if %{without gitcommit}
-Patch0:        0001-no-third_party-foxi.patch
-# https://github.com/pytorch/pytorch/pull/131282
-Patch1:        0001-Add-cmake-option-USE_SYSTEM_FBGEMM.patch
-
-%endif
-
-
-%if %{with gitcommit}
 Patch11:       0001-Improve-finding-and-using-the-rocm_version.h.patch
-%endif
 
 # ROCm patches
 # Patches need to be refactored for ToT
@@ -205,16 +195,6 @@ Patch11:       0001-Improve-finding-and-using-the-rocm_version.h.patch
 Patch100:      0001-Optionally-use-hipblaslt.patch
 %endif
 Patch101:      0001-cuda-hip-signatures.patch
-%if %{without gitcommit}
-Patch102:      0001-silence-an-assert.patch
-%endif
-%if %{without gitcommit}
-Patch105:      0001-disable-use-of-aotriton.patch
-%endif
-%endif
-
-%if %{without gitcommit}
-Patch106:      0001-include-fmt-ranges.h-for-using-fmt-join.patch
 %endif
 
 ExclusiveArch:  x86_64 aarch64
@@ -247,9 +227,7 @@ BuildRequires:  gcc-gfortran
 BuildRequires:  gloo-devel
 %endif
 %endif
-%if %{with gitcommit}
 BuildRequires:  json-devel
-%endif
 
 BuildRequires:  libomp-devel
 BuildRequires:  numactl-devel
@@ -420,11 +398,14 @@ Summary:        %{name} for CUDA
 %{summary}
 %endif
 
+%if %{with rocm_loop}
 %package -n python3-%{pypi_name}-rocm-gfx9
 Summary:        %{name} for ROCm gfx9
 
 %description -n python3-%{pypi_name}-rocm-gfx9
 %{summary}
+
+%endif
 
 %if %{with test}
 %package -n python3-%{pypi_name}-test
@@ -538,6 +519,9 @@ sed -i -e '/typing-extensions/d' setup.py
 # Need to pip these
 sed -i -e '/sympy/d' setup.py
 sed -i -e '/fsspec/d' setup.py
+%else
+# for 2.5.0
+sed -i -e 's@sympy==1.13.1@sympy>=1.13.1@' setup.py
 %endif
 
 # A new dependency
@@ -551,9 +535,8 @@ sed -i -e 's@fmt::fmt-header-only@fmt@' CMakeLists.txt
 sed -i -e 's@fmt::fmt-header-only@fmt@' c10/CMakeLists.txt
 sed -i -e 's@fmt::fmt-header-only@fmt@' torch/CMakeLists.txt
 sed -i -e 's@fmt::fmt-header-only@fmt@' cmake/Dependencies.cmake
-%if %{with gitcommit}
 sed -i -e 's@fmt::fmt-header-only@fmt@' caffe2/CMakeLists.txt
-%endif
+
 sed -i -e 's@add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)@#add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)@' cmake/Dependencies.cmake
 sed -i -e 's@set_target_properties(fmt-header-only PROPERTIES INTERFACE_COMPILE_FEATURES "")@#set_target_properties(fmt-header-only PROPERTIES INTERFACE_COMPILE_FEATURES "")@' cmake/Dependencies.cmake
 sed -i -e 's@list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@#list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@' cmake/Dependencies.cmake
@@ -953,20 +936,20 @@ done
 %{_bindir}/convert-caffe2-to-onnx
 %{_bindir}/convert-onnx-to-caffe2
 %{_bindir}/torchrun
-%if %{with gitcommit}
 %{_bindir}/torchfrtrace
-%endif
 %{python3_sitearch}/%{pypi_name}
 %{python3_sitearch}/%{pypi_name}-*.egg-info
 %{python3_sitearch}/functorch
 %{python3_sitearch}/torchgen
 
 %if %{with rocm}
+%if %{with rocm_loop}
 
 %files -n python3-%{pypi_name}-rocm-gfx9
 %{_libdir}/rocm/gfx9/bin/*
 %{_libdir}/rocm/gfx9/lib64/*
 
+%endif
 %endif
 
 %changelog
