@@ -12,7 +12,7 @@
 %global date0 2024103
 %global pypi_version 2.5.0
 %else
-%global pypi_version 2.5.0
+%global pypi_version 2.5.1
 %endif
 
 # For -test subpackage
