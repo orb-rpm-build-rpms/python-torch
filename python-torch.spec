@@ -327,6 +327,8 @@ BuildRequires:  google-benchmark-devel
 
 Requires:       python3dist(dill)
 
+Obsoletes:      caffe  = 1.0^git20200212.9b89154
+
 %description
 PyTorch is a Python package that provides two high-level features:
 
