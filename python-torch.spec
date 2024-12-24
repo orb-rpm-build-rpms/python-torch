@@ -25,74 +25,21 @@
 %ifarch x86_64
 %bcond_without rocm
 %endif
-%bcond_without hipblaslt
-%bcond_without magma
 %bcond_with rocm_loop
 %global rocm_default_gpu default
 %global rocm_gpu_list gfx9
 
-# Caffe2 support came in F41
-%if 0%{?fedora} > 40
-%bcond_without caffe2
-%else
-%bcond_with caffe2
-%endif
-
-# Distributed support came in F41
-%if 0%{?fedora} > 40
-%bcond_without distributed
 # For testing distributed+rccl etc.
 %bcond_with rccl
 %bcond_with gloo
 %bcond_without mpi
 %bcond_without tensorpipe
-%else
-%bcond_with distributed
-%endif
-
-# Do no confuse xnnpack versions
-%if 0%{?fedora} > 40
-%bcond_without xnnpack
-%else
-%bcond_with xnnpack
-%endif
-
-%bcond_without pthreadpool
-%bcond_without pocketfft
-
-%ifarch x86_64
-  %if %{with rocm}
-    %bcond_with fbgemm
-  %else
-    %bcond_without fbgemm
-  %endif
-%else
-  %bcond_with fbgemm
-%endif
-
-# For testing cuda
-%ifarch x86_64
-%bcond_with cuda
-%endif
-
-# Pick a CUDA version that works
-%global cuda_ver 12.5
-
-# For testing compat-gcc
-%global compat_gcc_major 13
-%bcond_with compat_gcc
 
 # Disable dwz with rocm because memory can be exhausted
 %if %{with rocm}
 %define _find_debuginfo_dwz_opts %{nil}
 %endif
 
-%if %{with cuda}
-# workaround problems with -pie
-%global build_cxxflags %{nil}
-%global build_ldflags %{nil}
-%endif
-			 
 # These came in 2.4 and not yet in Fedora
 %bcond_with opentelemetry
 %bcond_with httplib
@@ -119,13 +66,6 @@ Source0:        %{forgeurl}/releases/download/v%{version}/pytorch-v%{version}.ta
 Source1:        https://github.com/google/flatbuffers/archive/refs/tags/v23.3.3.tar.gz
 Source2:        https://github.com/pybind/pybind11/archive/refs/tags/v2.11.1.tar.gz
 
-%if %{with cuda}
-%global cuf_ver 1.1.2
-Source10:       https://github.com/NVIDIA/cudnn-frontend/archive/refs/tags/v%{cuf_ver}.tar.gz
-%global cul_ver 3.4.1
-Source11:       https://github.com/NVIDIA/cutlass/archive/refs/tags/v%{cul_ver}.tar.gz
-%endif
-
 # Developement on tensorpipe has stopped, repo made read only July 1, 2023, this is the last commit
 %global tp_commit 52791a2fd214b2a9dc5759d36725909c1daa7f2e
 %global tp_scommit %(c=%{tp_commit}; echo ${c:0:7})
@@ -136,36 +76,6 @@ Source21:       https://github.com/libuv/libuv/archive/refs/tags/v1.41.0.tar.gz
 %global nop_commit 910b55815be16109f04f4180e9adee14fb4ce281
 %global nop_scommit %(c=%{nop_commit}; echo ${c:0:7})
 Source22:       https://github.com/google/libnop/archive/%{nop_commit}/libnop-%{nop_scommit}.tar.gz
-
-%if %{without xnnpack}
-%global xnn_commit fcbf55af6cf28a4627bcd1f703ab7ad843f0f3a2
-%global xnn_scommit %(c=%{xnn_commit}; echo ${c:0:7})
-Source30:       https://github.com/google/xnnpack/archive/%{xnn_commit}/xnnpack-%{xnn_scommit}.tar.gz
-%global fx_commit 63058eff77e11aa15bf531df5dd34395ec3017c8
-%global fx_scommit %(c=%{fx_commit}; echo ${c:0:7})
-Source31:       https://github.com/Maratyszcza/fxdiv/archive/%{fx_commit}/FXdiv-%{fx_scommit}.tar.gz
-%global fp_commit 0a92994d729ff76a58f692d3028ca1b64b145d91
-%global fp_scommit %(c=%{fp_commit}; echo ${c:0:7})
-Source32:       https://github.com/Maratyszcza/FP16/archive/%{fp_commit}/FP16-%{fp_scommit}.tar.gz
-%global ps_commit 072586a71b55b7f8c584153d223e95687148a900
-%global ps_scommit %(c=%{ps_commit}; echo ${c:0:7})
-Source33:       https://github.com/Maratyszcza/psimd/archive/%{ps_commit}/psimd-%{ps_scommit}.tar.gz
-%global ci_commit 16bfc1622c6902d6f91d316ec54894910c620325
-%global ci_scommit %(c=%{ci_commit}; echo ${c:0:7})
-Source34:       https://github.com/pytorch/cpuinfo/archive/%{ci_commit}/cpuinfo-%{ci_scommit}.tar.gz
-%endif
-
-%if %{without pthreadpool}
-%global pt_commit 4fe0e1e183925bf8cfa6aae24237e724a96479b8
-%global pt_scommit %(c=%{pt_commit}; echo ${c:0:7})
-Source40:       https://github.com/Maratyszcza/pthreadpool/archive/%{pt_commit}/pthreadpool-%{pt_scommit}.tar.gz
-%endif
-
-%if %{without pocketfft}
-%global pf_commit 076cb3d2536b7c5d0629093ad886e10ac05f3623
-%global pf_scommit %(c=%{pf_commit}; echo ${c:0:7})
-Source50:       https://github.com/mreineck/pocketfft/archive/%{pf_commit}/pocketfft-%{pf_scommit}.tar.gz
-%endif
 
 %if %{without opentelemetry}
 %global ot_ver 1.14.2
@@ -189,13 +99,7 @@ Patch11:       0001-Improve-finding-and-using-the-rocm_version.h.patch
 # ROCm patches
 # Patches need to be refactored for ToT
 # These are ROCm packages
-%if %{without cuda}
-# https://github.com/pytorch/pytorch/pull/120551
-%if %{without hipblaslt}
-Patch100:      0001-Optionally-use-hipblaslt.patch
-%endif
 Patch101:      0001-cuda-hip-signatures.patch
-%endif
 
 ExclusiveArch:  x86_64 aarch64
 %global toolchain gcc
@@ -204,28 +108,14 @@ ExclusiveArch:  x86_64 aarch64
 BuildRequires:  cmake
 BuildRequires:  binutils-gold
 BuildRequires:  eigen3-devel
-%if %{with fbgemm}
-BuildRequires:  asmjit-devel
-BuildRequires:  fbgemm-devel
-%endif
 BuildRequires:  flexiblas-devel
 BuildRequires:  fmt-devel
-%if %{with caffe2}
 BuildRequires:  foxi-devel
-%endif
-
-%if %{with compat_gcc}
-BuildRequires:  gcc%{compat_gcc_major}-c++
-BuildRequires:  gcc%{compat_gcc_major}-gfortran
-%else
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
-%endif
 
-%if %{with distributed}
 %if %{with gloo}
 BuildRequires:  gloo-devel
-%endif
 %endif
 BuildRequires:  json-devel
 
@@ -233,30 +123,20 @@ BuildRequires:  libomp-devel
 BuildRequires:  numactl-devel
 BuildRequires:  ninja-build
 BuildRequires:  onnx-devel
-%if %{with distributed}
 %if %{with mpi}
 BuildRequires:  openmpi-devel
-%endif
 %endif
 BuildRequires:  protobuf-devel
 BuildRequires:  sleef-devel
 BuildRequires:  valgrind-devel
-
-%if %{with pocketfft}
 BuildRequires:  pocketfft-devel
-%endif
-
-%if %{with pthreadpool}
 BuildRequires:  pthreadpool-devel
-%endif
 
-%if %{with xnnpack}
 BuildRequires:  cpuinfo-devel
 BuildRequires:  FP16-devel
 BuildRequires:  fxdiv-devel
 BuildRequires:  psimd-devel
 BuildRequires:  xnnpack-devel = 0.0^git20240814.312eb7e
-%endif
 
 BuildRequires:  python3-devel
 BuildRequires:  python3dist(filelock)
@@ -276,25 +156,19 @@ BuildRequires:  python3dist(sympy)
 
 %if %{with rocm}
 BuildRequires:  hipblas-devel
-%if %{with hipblaslt}
 BuildRequires:  hipblaslt-devel
-%endif
 BuildRequires:  hipcub-devel
 BuildRequires:  hipfft-devel
 BuildRequires:  hiprand-devel
 BuildRequires:  hipsparse-devel
 BuildRequires:  hipsolver-devel
-%if %{with magma}
 BuildRequires:  magma-devel
-%endif
 BuildRequires:  miopen-devel
 BuildRequires:  rocblas-devel
 BuildRequires:  rocrand-devel
 BuildRequires:  rocfft-devel
-%if %{with distributed}
 %if %{with rccl}
 BuildRequires:  rccl-devel
-%endif
 %endif
 BuildRequires:  rocprim-devel
 BuildRequires:  rocm-cmake
@@ -311,14 +185,6 @@ BuildRequires:  roctracer-devel
 Requires:       amdsmi
 Requires:       rocm-rpm-macros-modules
 
-%endif
-
-%if %{with cuda}
-BuildRequires:  cuda-cudart-devel-%{cuda_ver}
-BuildRequires:  libcublas-devel-%{cuda_ver}
-BuildRequires:  libcufft-devel-%{cuda_ver}
-BuildRequires:  libcurand-devel-%{cuda_ver}
-BuildRequires:  libcusparse-devel-%{cuda_ver}
 %endif
 
 %if %{with test}
@@ -359,30 +225,6 @@ Provides:       bundled(libnop)
 Provides:       bundled(libuv) = 1.41.0
 %endif
 
-# These are already in Fedora
-%if %{without xnnpack}
-# BSD-3-Clause
-Provides:       bundled(xnnpack)
-# MIT
-Provides:       bundled(FP16)
-# MIT
-Provides:       bundled(fxdiv)
-# MIT
-Provides:       bundled(psimd)
-# BSD-2-Clause
-Provides:       bundled(cpuinfo)
-%endif
-
-%if %{without pthreadpool}
-# BSD-2-Clause
-Provides:       bundled(pthreadpool)
-%endif
-
-%if %{without pocketfft}
-# BSD-3-Clause
-Provides:       bundled(pocketfft)
-%endif
-
 %description -n python3-%{pypi_name}
 PyTorch is a Python package that provides two high-level features:
 
@@ -391,14 +233,6 @@ PyTorch is a Python package that provides two high-level features:
 
 You can reuse your favorite Python packages such as NumPy, SciPy,
 and Cython to extend PyTorch when needed.
-
-%if %{with cuda}
-%package -n python3-%{pypi_name}-cuda-%{cuda_ver}
-Summary:        %{name} for CUDA
-
-%description -n python3-%{pypi_name}-cuda-%{cuda_ver}
-%{summary}
-%endif
 
 %if %{with rocm_loop}
 %package -n python3-%{pypi_name}-rocm-gfx9
@@ -441,15 +275,6 @@ tar xf %{SOURCE2}
 rm -rf third_party/pybind11/*
 cp -r pybind11-2.11.1/* third_party/pybind11/
 
-%if %{with cuda}
-tar xf %{SOURCE10}
-rm -rf third_party/cudnn_frontend/*
-cp -r cudnn-frontend-%{cuf_ver}/* third_party/cudnn_frontend/
-tar xf %{SOURCE11}
-rm -rf third_party/cutlass/*
-cp -r cutlass-%{cul_ver}/* third_party/cutlass/
-%endif
-
 %if %{with tensorpipe}
 tar xf %{SOURCE20}
 rm -rf third_party/tensorpipe/*
@@ -460,36 +285,6 @@ cp -r libuv-*/* third_party/tensorpipe/third_party/libuv/
 tar xf %{SOURCE22}
 rm -rf third_party/tensorpipe/third_party/libnop/*
 cp -r libnop-*/* third_party/tensorpipe/third_party/libnop/
-%endif
-
-%if %{without xnnpack}
-tar xf %{SOURCE30}
-rm -rf third_party/XNNPACK/*
-cp -r XNNPACK-*/* third_party/XNNPACK/
-tar xf %{SOURCE31}
-rm -rf third_party/FXdiv/*
-cp -r FXdiv-*/* third_party/FXdiv/
-tar xf %{SOURCE32}
-rm -rf third_party/FP16/*
-cp -r FP16-*/* third_party/FP16/
-tar xf %{SOURCE33}
-rm -rf third_party/psimd/*
-cp -r psimd-*/* third_party/psimd/
-tar xf %{SOURCE34}
-rm -rf third_party/cpuinfo/*
-cp -r cpuinfo-*/* third_party/cpuinfo/
-%endif
-
-%if %{without pthreadpool}
-tar xf %{SOURCE40}
-rm -rf third_party/pthreadpool/*
-cp -r pthreadpool-*/* third_party/pthreadpool/
-%endif
-
-%if %{without pocketfft}
-tar xf %{SOURCE50}
-rm -rf third_party/pocketfft/*
-cp -r pocketfft-*/* third_party/pocketfft/
 %endif
 
 %if %{without opentelemtry}
@@ -511,9 +306,7 @@ cp -r kineto-*/* third_party/kineto/
 %endif
 
 # hipblaslt only building with gfx90a
-%if %{with hipblaslt}
 sed -i -e 's@"gfx90a", "gfx940", "gfx941", "gfx942"@"gfx90a"@' aten/src/ATen/native/cuda/Blas.cpp
-%endif
 
 %if 0%{?rhel}
 # In RHEL but too old
@@ -544,10 +337,8 @@ sed -i -e 's@set_target_properties(fmt-header-only PROPERTIES INTERFACE_COMPILE_
 sed -i -e 's@list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@#list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)@' cmake/Dependencies.cmake
 
 # No third_party FXdiv
-%if %{with xnnpack}
 sed -i -e 's@if(NOT TARGET fxdiv)@if(MSVC AND USE_XNNPACK)@' caffe2/CMakeLists.txt
 sed -i -e 's@TARGET_LINK_LIBRARIES(torch_cpu PRIVATE fxdiv)@#TARGET_LINK_LIBRARIES(torch_cpu PRIVATE fxdiv)@' caffe2/CMakeLists.txt
-%endif
 
 # Disable the use of check_submodule's in the setup.py, we are a tarball, not a git repo
 sed -i -e 's@check_submodules()$@#check_submodules()@' setup.py
@@ -570,29 +361,8 @@ mv third_party/flatbuffers .
 
 mv third_party/pybind11 .
 
-%if %{with cuda}
-mv third_party/cudnn_frontend .
-mv third_party/cutlass .
-%endif
-
 %if %{with tensorpipe}
 mv third_party/tensorpipe .
-%endif
-
-%if %{without xnnpack}
-mv third_party/XNNPACK .
-mv third_party/FXdiv .
-mv third_party/FP16 .
-mv third_party/psimd .
-mv third_party/cpuinfo .
-%endif
-
-%if %{without pthreadpool}
-mv third_party/pthreadpool .
-%endif
-
-%if %{without pocketfft}
-mv third_party/pocketfft .
 %endif
 
 %if %{without opentelemetry}
@@ -619,29 +389,8 @@ mv miniz-2.1.0 third_party
 mv flatbuffers third_party
 mv pybind11 third_party
 
-%if %{with cuda}
-mv cudnn_frontend third_party
-mv cutlass third_party
-%endif
-
 %if %{with tensorpipe}
 mv tensorpipe third_party
-%endif
-
-%if %{without xnnpack}
-mv XNNPACK third_party
-mv FXdiv third_party
-mv FP16 third_party
-mv psimd third_party
-mv cpuinfo third_party
-%endif
-
-%if %{without pthreadpool}
-mv pthreadpool third_party
-%endif
-
-%if %{without pocketfft}
-mv pocketfft third_party
 %endif
 
 %if %{without opentelemetry}
@@ -660,11 +409,9 @@ mv kineto third_party
 mv googletest third_party
 %endif
 
-%if %{with pocketfft}
 #
 # Fake out pocketfft, and system header will be used
 mkdir third_party/pocketfft
-%endif
 
 #
 # Use the system valgrind headers
@@ -690,12 +437,6 @@ sed -i -e 's@HIP 1.0@HIP MODULE@'            cmake/public/LoadHIP.cmake
 
 %endif
 
-%if %{with cuda}
-
-# TBD
-
-%endif
-
 %build
 
 #
@@ -710,11 +451,7 @@ if [ ${COMPILE_JOBS}x = x ]; then
     COMPILE_JOBS=1
 fi
 # Take into account memmory usage per core, do not thrash real memory
-%if %{with cuda}
-BUILD_MEM=4
-%else
 BUILD_MEM=2
-%endif
 MEM_KB=0
 MEM_KB=`cat /proc/meminfo | grep MemTotal | awk '{ print $2 }'`
 MEM_MB=`eval "expr ${MEM_KB} / 1024"`
@@ -725,12 +462,6 @@ if [ "$COMPILE_JOBS_MEM" -lt "$COMPILE_JOBS" ]; then
 fi
 export MAX_JOBS=$COMPILE_JOBS
 
-%if %{with compat_gcc}
-export CC=%{_bindir}/gcc-%{compat_gcc_major}
-export CXX=%{_bindir}/g++-%{compat_gcc_major}
-export FC=%{_bindir}/gfortran-%{compat_gcc_major}
-%endif
-
 # For debugging setup.py
 # export SETUPTOOLS_SCM_DEBUG=1
 
@@ -740,10 +471,7 @@ export FC=%{_bindir}/gfortran-%{compat_gcc_major}
 # export CMAKE_SHARED_LINKER_FLAGS=-Wl,--verbose
 
 # Manually set this hardening flag
-# CUDA is unhappy with pie, so do not use it
-%if %{without cuda}
 export CMAKE_EXE_LINKER_FLAGS=-pie
-%endif
 
 export BUILD_CUSTOM_PROTOBUF=OFF
 export BUILD_NVFUSER=OFF
@@ -756,12 +484,7 @@ export INTERN_BUILD_MOBILE=OFF
 export USE_DISTRIBUTED=OFF
 export USE_CUDA=OFF
 export USE_FAKELOWP=OFF
-%if %{with fbgemm}
-export USE_FBGEMM=ON
-export USE_SYSTEM_FBGEMM=ON
-%else
 export USE_FBGEMM=OFF
-%endif
 export USE_FLASH_ATTENTION=OFF
 export USE_GOLD_LINKER=ON
 export USE_GLOO=OFF
@@ -787,31 +510,13 @@ export USE_SYSTEM_LIBS=OFF
 export USE_TENSORPIPE=OFF
 export USE_XNNPACK=ON
 export USE_XPU=OFF
-
-%if %{with pthreadpool}
 export USE_SYSTEM_PTHREADPOOL=ON
-%endif
-
-%if %{with xnnpack}
 export USE_SYSTEM_CPUINFO=ON
 export USE_SYSTEM_FP16=ON
 export USE_SYSTEM_FXDIV=ON
 export USE_SYSTEM_PSIMD=ON
 export USE_SYSTEM_XNNPACK=ON
-%endif
 
-%if %{with cuda}
-%if %{without rocm}
-export CPLUS_INCLUDE_PATH=/usr/local/cuda-%{cuda_ver}/include
-export CUDACXX=/usr/local/cuda-%{cuda_ver}/bin/nvcc
-export CUDA_HOME=/usr/local/cuda-%{cuda_ver}/
-export USE_CUDA=ON
-# The arches to build for
-export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0"
-%endif
-%endif
-
-%if %{with distributed}
 export USE_DISTRIBUTED=ON
 %if %{with tensorpipe}
 export USE_TENSORPIPE=ON
@@ -824,7 +529,6 @@ export USE_SYSTEM_GLOO=ON
 %endif
 %if %{with mpi}
 export USE_MPI=ON
-%endif
 %endif
 
 %if %{with test}
@@ -844,9 +548,7 @@ export BUILD_TEST=ON
 %if %{with rocm}
 
 export USE_ROCM=ON
-%if %{with magma}
 export USE_MAGMA=ON
-%endif
 export HIP_PATH=`hipconfig -p`
 export ROCM_PATH=`hipconfig -R`
 RESOURCE_DIR=`%{rocmllvm_bindir}/clang -print-resource-dir`
@@ -880,12 +582,6 @@ done
 %endif
 
 %install
-
-%if %{with compat_gcc}
-export CC=%{_bindir}/gcc%{compat_gcc_major}
-export CXX=%{_bindir}/g++%{compat_gcc_major}
-export FC=%{_bindir}/gfortran%{compat_gcc_major}
-%endif
 
 %if %{with rocm}
 export USE_ROCM=ON
@@ -926,13 +622,12 @@ done
 
 %endif
 
+%check
+%py3_check_import torch
+
 # Do not remote the empty files
 
-%if %{with cuda}
-%files -n python3-%{pypi_name}-cuda-%{cuda_ver}
-%else
 %files -n python3-%{pypi_name}
-%endif
 %license LICENSE
 %doc README.md 
 %{_bindir}/convert-caffe2-to-onnx
