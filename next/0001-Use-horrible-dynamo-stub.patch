@@ -1,0 +1,85 @@
+From fd535f7bf44f2034cca2a66b4cc7d68d962341df Mon Sep 17 00:00:00 2001
+From: Tom Rix <Tom.Rix@amd.com>
+Date: Sun, 20 Jul 2025 12:47:58 -0700
+Subject: [PATCH] Use horrible dynamo stub
+
+Rawhide's update of python is too fast for dynamo
+So paper of the problem with a horrible stub that throws
+runtime exceptions if dynamo is used.
+
+Signed-off-by: Tom Rix <Tom.Rix@amd.com>
+---
+ build_variables.bzl                        | 26 ++++++++++++----------
+ torch/csrc/dynamo/horrible_dynamo_stub.cpp | 16 +++++++++++++
+ 2 files changed, 30 insertions(+), 12 deletions(-)
+ create mode 100644 torch/csrc/dynamo/horrible_dynamo_stub.cpp
+
+diff --git a/build_variables.bzl b/build_variables.bzl
+index b266c80e8843..a3be6893349b 100644
+--- a/build_variables.bzl
++++ b/build_variables.bzl
+@@ -140,7 +140,8 @@ core_trainer_sources = [
+     "torch/csrc/autograd/variable.cpp",
+     "torch/csrc/autograd/utils/warnings.cpp",
+     "torch/csrc/autograd/jit_decomp_interface.cpp",
+-    "torch/csrc/dynamo/compiled_autograd.cpp",
++#    "torch/csrc/dynamo/compiled_autograd.cpp",
++    "torch/csrc/dynamo/horrible_dynamo_stub.cpp",
+     "torch/csrc/jit/frontend/name_mangler.cpp",
+     "torch/csrc/jit/ir/type_hashing.cpp",
+     "torch/csrc/jit/serialization/pickler.cpp",
+@@ -868,17 +869,18 @@ libtorch_python_core_sources = [
+     "torch/csrc/autograd/python_torch_functions_manual.cpp",
+     "torch/csrc/autograd/python_variable.cpp",
+     "torch/csrc/autograd/python_variable_indexing.cpp",
+-    "torch/csrc/dynamo/python_compiled_autograd.cpp",
+-    "torch/csrc/dynamo/cache_entry.cpp",
+-    "torch/csrc/dynamo/cpp_shim.cpp",
+-    "torch/csrc/dynamo/cpython_defs.c",
+-    "torch/csrc/dynamo/eval_frame.c",
+-    "torch/csrc/dynamo/eval_frame_cpp.cpp",
+-    "torch/csrc/dynamo/extra_state.cpp",
+-    "torch/csrc/dynamo/framelocals_mapping.cpp",
+-    "torch/csrc/dynamo/guards.cpp",
+-    "torch/csrc/dynamo/utils.cpp",
+-    "torch/csrc/dynamo/init.cpp",
++#    "torch/csrc/dynamo/python_compiled_autograd.cpp",
++#    "torch/csrc/dynamo/cache_entry.cpp",
++#    "torch/csrc/dynamo/cpp_shim.cpp",
++#    "torch/csrc/dynamo/cpython_defs.c",
++#    "torch/csrc/dynamo/eval_frame.c",
++#    "torch/csrc/dynamo/eval_frame_cpp.cpp",
++#    "torch/csrc/dynamo/extra_state.cpp",
++#    "torch/csrc/dynamo/framelocals_mapping.cpp",
++#    "torch/csrc/dynamo/guards.cpp",
++#    "torch/csrc/dynamo/utils.cpp",
++#    "torch/csrc/dynamo/init.cpp",
++    "torch/csrc/dynamo/horrible_dynamo_stub.cpp",
+     "torch/csrc/functorch/init.cpp",
+     "torch/csrc/fx/node.cpp",
+     "torch/csrc/mps/Module.cpp",
+diff --git a/torch/csrc/dynamo/horrible_dynamo_stub.cpp b/torch/csrc/dynamo/horrible_dynamo_stub.cpp
+new file mode 100644
+index 000000000000..3ac1324d4557
+--- /dev/null
++++ b/torch/csrc/dynamo/horrible_dynamo_stub.cpp
+@@ -0,0 +1,16 @@
++#include <torch/csrc/autograd/engine.h>
++#include <torch/csrc/dynamo/compiled_autograd.h>
++
++namespace torch::dynamo::autograd {
++const std::unique_ptr<PyCompilerInterface>& getPyCompilerInterface() {
++  throw std::runtime_error("Dynamo not supported");
++  return nullptr;
++}
++std::vector<std::optional<InputMetadata>> get_input_metadata(
++    const edge_list& edges) {
++  std::vector<std::optional<InputMetadata>> r;
++  throw std::runtime_error("Dynamo not supported");
++  return r;
++}
++
++}
+-- 
+2.49.0
+
