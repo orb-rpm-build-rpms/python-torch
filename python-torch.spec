@@ -107,12 +107,7 @@ Source80:       https://github.com/pytorch/kineto/archive/%{ki_commit}/kineto-%{
 %global ox_ver 1.18.0
 Source90:       https://github.com/onnx/onnx/archive/refs/tags/v%{ox_ver}.tar.gz
 
-%if 0%{?fedora} >= 45
-# drop aarch64 in 45
-%global pt_arches x86_64
-%else
 %global pt_arches x86_64 aarch64
-%endif
 ExclusiveArch:  %pt_arches
 %global toolchain gcc
 %global _lto_cflags %nil
