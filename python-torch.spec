@@ -54,16 +54,14 @@
 %bcond_without onnx
 %bcond_without protobuf
 %bcond_without setuptools
+%bcond_without sympy
 %else
 %bcond_with eigen3
 %bcond_with onnx
 %bcond_with protobuf
 %bcond_with setuptools
-%endif
-
-# 1/23/26
-# nothing provides (python3.14dist(mpmath) < 1.4~~ with python3.14dist(mpmath) >= 1.1) needed by python3-sympy-1.14.0-10.fc44.noarch from fedora
 %bcond_with sympy
+%endif
 
 Name:           python-%{pypi_name}
 %if %{with gitcommit}
