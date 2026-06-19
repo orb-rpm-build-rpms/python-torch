@@ -1,0 +1,64 @@
+From 7b9106b6c4c1da71e30e7e63b2248b01c61a3210 Mon Sep 17 00:00:00 2001
+From: Klaus Zimmermann <klaus.zimmermann@quansight.com>
+Date: Fri, 29 May 2026 17:56:12 +0000
+Subject: [PATCH] Fix struct.pack polyfill signature mismatch on Python 3.15
+ (#185403)
+
+## Summary
+
+Python 3.15 gives the builtin `struct.pack` an introspectable signature, `(format, /, *values)`. `substitute_in_graph` validates that a polyfill's signature matches the original builtin's, comparing positional-only parameter names. The `struct.pack` polyfill declared its positional-only parameter as `fmt`, mismatching `format`, so `substitute_in_graph` raised `TypeError` at import time:
+
+```
+File ".../torch/_dynamo/polyfills/struct.py", line 20, in <module>
+  @substitute_in_graph(struct.pack, can_constant_fold_through=True)
+TypeError: Signature mismatch between <built-in function pack> and <function pack ...>:
+  (format, /, *values) != (fmt: 'bytes | str', /, *v: 'Any') -> 'bytes'
+```
+
+The polyfills loader eagerly imports every polyfill module, so this broke `import torch._dynamo` entirely on 3.15, failing every py3.15/3.15t binary test job (the smoke test imports `torch._dynamo`). On Python <= 3.14 the builtin has no introspectable signature, so the check is skipped and the mismatch went unnoticed.
+
+The fix renames the parameter to `format` to match the builtin. The sibling `unpack` polyfill already uses `format`. The var-positional name (`*v`) is irrelevant here because `substitute_in_graph` ignores `VAR_POSITIONAL` parameter names.
+
+Part of #184352 (Python 3.15 support).
+
+## Test plan
+
+Local introspection confirms there is no regression on older Pythons and that `format` is the canonical name where a signature is exposed:
+
+```
+$ python --version
+Python 3.10.19
+$ python -c "import inspect, struct; print(inspect.signature(struct.pack))"
+ValueError: no signature found for builtin <built-in function pack>
+$ python -c "import inspect, struct; print(inspect.signature(struct.unpack))"
+(format, buffer, /)
+```
+
+On <= 3.14 `struct.pack` has no signature, so the `substitute_in_graph` check is skipped and the rename is a no-op there. The 3.15 failure reproduces only in the py3.15 binary smoke test (`manywheel-py3_15-*-test`); needs `ciflow/binaries` to validate.
+
+Authored by Claude.
+
+Pull Request resolved: https://github.com/pytorch/pytorch/pull/185403
+Approved by: https://github.com/guilhermeleobas, https://github.com/rtimpe
+---
+ torch/_dynamo/polyfills/struct.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/torch/_dynamo/polyfills/struct.py b/torch/_dynamo/polyfills/struct.py
+index f4522a12f732..4077a7f05788 100644
+--- a/torch/_dynamo/polyfills/struct.py
++++ b/torch/_dynamo/polyfills/struct.py
+@@ -18,8 +18,8 @@ __all__ = [
+ 
+ 
+ @substitute_in_graph(struct.pack, can_constant_fold_through=True)  # type: ignore[arg-type]
+-def pack(fmt: bytes | str, /, *v: Any) -> bytes:
+-    return struct.pack(fmt, *v)
++def pack(format: bytes | str, /, *v: Any) -> bytes:
++    return struct.pack(format, *v)
+ 
+ 
+ @substitute_in_graph(struct.unpack, can_constant_fold_through=True)  # type: ignore[arg-type]
+-- 
+2.53.0
+

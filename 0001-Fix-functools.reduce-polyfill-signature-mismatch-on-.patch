@@ -1,0 +1,110 @@
+From a377729dc7fb711e43c0f59829580cc9c3f0522e Mon Sep 17 00:00:00 2001
+From: jassad095 <joaopfassad@gmail.com>
+Date: Mon, 1 Jun 2026 05:06:50 +0000
+Subject: [PATCH] Fix functools.reduce polyfill signature mismatch on Python
+ 3.15 (#185682)
+
+## Summary
+
+Python 3.15 will expose an introspectable signature for `functools.reduce` using a PEP 661 sentinel default: `(function, iterable, /, initial=functools._initial_missing)`. The CPython change is [#149591](https://github.com/python/cpython/pull/149591), which merged into CPython main on 2026-05-10, after 3.15.0b1 was tagged. So on 3.15.0b1 the default is still `<unrepresentable>` and `inspect.signature()` raises `ValueError`, which `substitute_in_graph` swallows and skips the check. From 3.15.0b2 the check will run.
+
+When it runs, it compares positional parameter names, keyword-only names, and default values. The polyfill declares its own local sentinel:
+
+```python
+_initial_missing = object()
+
+@substitute_in_graph(functools.reduce)
+def reduce(function, iterable, initial=_initial_missing, /):
+    ...
+```
+
+That local `object()` is a different instance from `functools._initial_missing`, so the defaults dict compares unequal and `substitute_in_graph` raises:
+
+```
+File ".../torch/_dynamo/polyfills/functools.py", line N, in <module>
+  @substitute_in_graph(functools.reduce)
+TypeError: Signature mismatch between <built-in function reduce> and <function reduce at 0x...>:
+  (function, iterable, /, initial=_initial_missing)
+  != (function, iterable, initial=<object object at 0x...>, /)
+```
+
+The polyfills loader imports every polyfill module, so this will break `import torch._dynamo` entirely on Python 3.15.0b2+. Same failure mode as #185403's `struct.pack` fix, just one step ahead of the next beta.
+
+The fix imports `functools._initial_missing` instead of declaring a local one. The polyfill's internal `if initial is _initial_missing` identity check still works because both sides now reference the same object. No behavior change on any Python version. `functools._initial_missing` has existed in `functools` since well before 3.10 (it's used by the pure-Python `functools.reduce` fallback), so the import is safe on every supported version.
+
+Part of #184352 (Python 3.15 support). Similar to #185403.
+
+## Test plan
+
+Verified on a locally-built Python 3.15-dev (CPython main at `heads/3.15:863c7e0`, which includes [#149591](https://github.com/python/cpython/pull/149591)). The upstream signature is exposed natively:
+
+```
+$ python3.15 -c "import functools, inspect; print(inspect.signature(functools.reduce))"
+(function, iterable, /, initial=_initial_missing)
+$ python3.15 -c "import functools, inspect; sig = inspect.signature(functools.reduce); print(sig.parameters['initial'].default is functools._initial_missing)"
+True
+```
+
+Extracted the actual `substitute_in_graph` from `torch/_dynamo/decorators.py` and ran it against both polyfill versions with no monkey-patching.
+
+Unmodified polyfill (`_initial_missing = object()` declared locally):
+
+```
+TypeError: Signature mismatch between <built-in function reduce> and <function unmodified_reduce at 0x...>:
+  (function, iterable, /, initial=_initial_missing)
+  != (function, iterable, initial=<object object at 0x...>, /)
+```
+
+Fixed polyfill (`from functools import _initial_missing`): no `TypeError` at the signature check.
+
+Regression on Python 3.12.13 (oldest currently supported):
+
+```
+$ python3 -c "import inspect, functools; inspect.signature(functools.reduce)"
+ValueError: no signature found for builtin <built-in function reduce>
+```
+
+The signature check is silently skipped on Python <= 3.14, so the fix is a no-op there. `functools._initial_missing` is confirmed present on 3.12.13. Eager-vs-polyfill parity verified on every input shape:
+
+```
+reduce(lambda a, b: a+b, [1,2,3,4])       == 10     (matches functools.reduce)
+reduce(lambda a, b: a+b, [1,2,3], 100)    == 106    (matches)
+reduce(lambda a, b: a+b, [])              -> TypeError("reduce() of empty iterable with no initial value")  (matches)
+reduce(lambda a, b: a+b, [], 99)          == 99     (matches)
+```
+
+Pre-commit checks: `python3 -m py_compile torch/_dynamo/polyfills/functools.py` and `git diff --staged --check` both clean.
+
+Pull Request resolved: https://github.com/pytorch/pytorch/pull/185682
+Approved by: https://github.com/ezyang
+
+Co-authored-by: Edward Z. Yang via mergedog <ezyang@meta.com>
+---
+ torch/_dynamo/polyfills/functools.py | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/torch/_dynamo/polyfills/functools.py b/torch/_dynamo/polyfills/functools.py
+index 6458b8080f93..9ba14888056b 100644
+--- a/torch/_dynamo/polyfills/functools.py
++++ b/torch/_dynamo/polyfills/functools.py
+@@ -4,6 +4,7 @@ Python polyfills for functools
+ 
+ import functools
+ from collections.abc import Callable, Iterable
++from functools import _initial_missing  # type: ignore[attr-defined]
+ from typing import TypeVar
+ 
+ from ..decorators import substitute_in_graph
+@@ -16,9 +17,6 @@ _T = TypeVar("_T")
+ _U = TypeVar("_U")
+ 
+ 
+-_initial_missing = object()
+-
+-
+ # Reference: https://docs.python.org/3/library/functools.html#functools.reduce
+ @substitute_in_graph(functools.reduce)
+ def reduce(
+-- 
+2.53.0
+
