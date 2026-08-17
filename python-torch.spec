@@ -632,7 +632,7 @@ sed -i -e 's@USE_MSLK_DEFAULT ON@USE_MSLK_DEFAULT OFF@' CMakeLists.txt
 #
 %ifarch x86_64
 # Real cores, No hyperthreading
-COMPILE_JOBS=`cat /proc/cpuinfo | grep -m 1 'cpu cores' | awk '{ print $4 }'`
+COMPILE_JOBS=`lscpu -p=CORE | grep -v '^#' | sort -u |wc -l`
 %else
 # cpuinfo format varies on other arches, fall back to nproc
 COMPILE_JOBS=`nproc`
