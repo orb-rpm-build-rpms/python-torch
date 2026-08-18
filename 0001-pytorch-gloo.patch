@@ -1,0 +1,27 @@
+From 1b1962613916961fade2ddb971c9ceeee74cc5c5 Mon Sep 17 00:00:00 2001
+From: Tom Rix <Tom.Rix@amd.com>
+Date: Mon, 17 Aug 2026 08:16:49 -0700
+Subject: [PATCH] pytorch gloo
+
+---
+ cmake/Dependencies.cmake | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 81b673aabcd4..f7f938988c8e 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1277,6 +1277,10 @@ if(USE_GLOO)
+       if(NOT Gloo_FOUND)
+         message(FATAL_ERROR "Cannot find gloo")
+       endif()
++      set(Gloo_INCLUDE_DIRS /usr/include)
++      set(Gloo_NATIVE_LIBRARY /usr/lib64/libgloo.so)
++      set(Gloo_HIP_LIBRARY /usr/lib64/libgloo_hip.so)
++
+       message("Found gloo: ${Gloo_NATIVE_LIBRARY}, cuda lib: ${Gloo_CUDA_LIBRARY}, hip lib: ${Gloo_HIP_LIBRARY}")
+       message("Found gloo include directories: ${Gloo_INCLUDE_DIRS}")
+ 
+-- 
+2.55.0
+

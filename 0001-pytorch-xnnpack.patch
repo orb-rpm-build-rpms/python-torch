@@ -1,0 +1,40 @@
+From ff660e83955efa54188d87c40804d991e31a8618 Mon Sep 17 00:00:00 2001
+From: Tom Rix <Tom.Rix@amd.com>
+Date: Mon, 17 Aug 2026 07:34:20 -0700
+Subject: [PATCH] pytorch xnnpack
+
+---
+ cmake/Dependencies.cmake | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 2baa187e69ac..81b673aabcd4 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -611,16 +611,18 @@ if(USE_XNNPACK AND NOT USE_SYSTEM_XNNPACK)
+   list(APPEND Caffe2_DEPENDENCY_LIBS XNNPACK microkernels-prod)
+ elseif(NOT TARGET XNNPACK AND USE_SYSTEM_XNNPACK)
+   add_library(XNNPACK SHARED IMPORTED)
+-  add_library(microkernels-prod SHARED IMPORTED)
++#  add_library(microkernels-prod SHARED IMPORTED)
+   find_library(XNNPACK_LIBRARY XNNPACK)
+-  find_library(microkernels-prod_LIBRARY microkernels-prod)
++#  find_library(microkernels-prod_LIBRARY microkernels-prod)
+   set_property(TARGET XNNPACK PROPERTY IMPORTED_LOCATION "${XNNPACK_LIBRARY}")
+-  set_property(TARGET microkernels-prod PROPERTY IMPORTED_LOCATION "${microkernels-prod_LIBRARY}")
+-  if(NOT XNNPACK_LIBRARY OR NOT microkernels-prod_LIBRARY)
++#  set_property(TARGET microkernels-prod PROPERTY IMPORTED_LOCATION "${microkernels-prod_LIBRARY}")
++#  if(NOT XNNPACK_LIBRARY OR NOT microkernels-prod_LIBRARY)
++  if(NOT XNNPACK_LIBRARY)
+     message(FATAL_ERROR "Cannot find XNNPACK")
+   endif()
+   message("-- Found XNNPACK: ${XNNPACK_LIBRARY}")
+-  list(APPEND Caffe2_DEPENDENCY_LIBS XNNPACK microkernels-prod)
++#  list(APPEND Caffe2_DEPENDENCY_LIBS XNNPACK microkernels-prod)
++    list(APPEND Caffe2_DEPENDENCY_LIBS XNNPACK)
+ endif()
+ 
+ # ---[ Vulkan deps
+-- 
+2.55.0
+
