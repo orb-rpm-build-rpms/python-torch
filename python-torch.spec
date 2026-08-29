@@ -741,8 +741,8 @@ export ROCM_PATH=`hipconfig -R`
 
 # pytorch uses clang, not hipcc
 export HIP_CLANG_PATH=%{rocmllvm_bindir}
-# export PYTORCH_ROCM_ARCH=%{rocm_gpu_list_default}
-export PYTORCH_ROCM_ARCH=gfx1151
+export PYTORCH_ROCM_ARCH=%{rocm_gpu_list_default}
+# export PYTORCH_ROCM_ARCH=gfx1151
 
 %endif
 
