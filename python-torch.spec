@@ -744,6 +744,21 @@ export HIP_CLANG_PATH=%{rocmllvm_bindir}
 export PYTORCH_ROCM_ARCH=%{rocm_gpu_list_default}
 # export PYTORCH_ROCM_ARCH=gfx1151
 
+# ROCm 7.1 + GCC 16 workaround: F44's ROCm is 7.1.1, whose
+# hip/amd_detail/host_defines.h defines __noinline__ as an empty macro on the
+# non-clang compiler path -- the branch g++ takes when it compiles the HIP host
+# sources (the c10/hip *.cpp files are built by the C++ compiler, not hipcc).
+# That empty macro corrupts the [[__gnu__::__noinline__]] attribute in libstdc++
+# 16's <format> (reached via <chrono> in c10/util/WaitCounter.h), so g++ rejects
+# its own header with "expected an identifier for the attribute name". Fedora's
+# own torch (2.12.0-7.fc45, same source and same gcc) builds ROCm fine because
+# F45 ships ROCm 7.2.2, whose host_defines.h no longer poisons the macro; this
+# is only needed while the base is on 7.1.1. Force-parse the affected std headers
+# first, before any HIP header can redefine the macro; their include guards then
+# keep the later, poisoned re-includes from re-parsing. CXXFLAGS only -- these
+# are C++ headers, and pyproject_wheel preserves a preset CXXFLAGS.
+export CXXFLAGS="%{build_cxxflags} -include chrono -include format"
+
 %endif
 
 %if %{without setuptools}
